@@ -45,6 +45,9 @@
 #include <photo/GetConfig.h>
 #include <photo/SetConfig.h>
 #include <photo/Capture.h>
+#include <photo/SetFocus.h>
+#include <photo/TriggerCapture.h>
+#include <photo/UnlockCamera.h>
 
 // photo library headers
 #include "photo/photo_camera_list.hpp"
@@ -64,6 +67,9 @@ public:
   ros::ServiceServer set_config_srv_;
   ros::ServiceServer get_config_srv_;
   ros::ServiceServer capture_srv_;
+  ros::ServiceServer set_focus_srv_;
+  ros::ServiceServer trigger_capture_srv_;
+  ros::ServiceServer unlock_camera_srv_;
 
   PhotoNode() :
     camera_list_(),
@@ -101,6 +107,9 @@ public:
     set_config_srv_ = private_nh.advertiseService("set_config", &PhotoNode::setConfig, this);
     get_config_srv_ = private_nh.advertiseService("get_config", &PhotoNode::getConfig, this);
     capture_srv_ = private_nh.advertiseService("capture", &PhotoNode::capture, this);
+    set_focus_srv_ = private_nh.advertiseService("set_focus", &PhotoNode::setFocus, this);
+    trigger_capture_srv_ = private_nh.advertiseService("trigger_capture", &PhotoNode::triggerCapture, this);
+    unlock_camera_srv_ = private_nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
   }
 
   ~PhotoNode()
@@ -143,6 +152,36 @@ public:
     }
     photo_mutex_.unlock();
     return error_code;
+  }
+
+  bool setFocus(photo::SetFocus::Request& req, photo::SetFocus::Response& resp )
+  {
+      photo_mutex_.lock();
+      bool error_code_focus_drive = camera_.photo_camera_set_config("autofocusdrive", "true");
+      ros::Duration(req.time_to_focus).sleep();
+      bool error_code_cancel_focus = camera_.photo_camera_set_config("cancelautofocus", "true");
+      resp.success = error_code_focus_drive && error_code_cancel_focus;
+      photo_mutex_.unlock();
+      return true;
+  }
+
+  bool triggerCapture(photo::TriggerCapture::Request& req, photo::TriggerCapture::Response& resp) {
+      CameraFilesystem *fs;
+      photo_mutex_.lock();
+      bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");
+      resp.success = error_code_focus_drive;
+
+      photo_mutex_.unlock();
+      return true;
+  }
+
+  bool unlockCamera(photo::UnlockCamera::Request& req, photo::UnlockCamera::Response& resp) {
+      photo_mutex_.lock();
+      bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "11");
+      resp.success = error_code_focus_drive;
+
+      photo_mutex_.unlock();
+      return true;
   }
 };
 

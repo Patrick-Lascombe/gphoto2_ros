@@ -18,6 +18,9 @@ add_service_files(FILES
   Capture.srv
   GetConfig.srv
   SetConfig.srv
+  SetFocus.srv
+  TriggerCapture.srv
+  UnlockCamera.srv
 )
 
 generate_messages(DEPENDENCIES
