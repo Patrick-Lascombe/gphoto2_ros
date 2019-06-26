@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   self_test
   sensor_msgs
   std_msgs
+  std_srvs
 )
 
 find_package(OpenCV REQUIRED)
@@ -18,9 +19,6 @@ add_service_files(FILES
   Capture.srv
   GetConfig.srv
   SetConfig.srv
-  SetFocus.srv
-  TriggerCapture.srv
-  UnlockCamera.srv
   DownloadPictures.srv
 )
 

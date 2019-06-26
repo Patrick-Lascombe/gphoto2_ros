@@ -45,10 +45,8 @@
 #include <photo/GetConfig.h>
 #include <photo/SetConfig.h>
 #include <photo/Capture.h>
-#include <photo/SetFocus.h>
-#include <photo/TriggerCapture.h>
-#include <photo/UnlockCamera.h>
 #include <photo/DownloadPictures.h>
+#include <std_srvs/Trigger.h>
 
 // photo library headers
 #include "photo/photo_camera_list.hpp"
@@ -157,18 +155,18 @@ public:
     return error_code;
   }
 
-  bool setFocus(photo::SetFocus::Request& req, photo::SetFocus::Response& resp )
+  bool setFocus(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
   {
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("autofocusdrive", "true");
-      ros::Duration(req.time_to_focus).sleep();
+      ros::Duration(0.5).sleep();
       bool error_code_cancel_focus = camera_.photo_camera_set_config("cancelautofocus", "true");
       resp.success = error_code_focus_drive && error_code_cancel_focus;
       photo_mutex_.unlock();
       return true;
   }
 
-  bool triggerCapture(photo::TriggerCapture::Request& req, photo::TriggerCapture::Response& resp) {
+  bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       CameraFilesystem *fs;
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");
@@ -178,7 +176,7 @@ public:
       return true;
   }
 
-  bool unlockCamera(photo::UnlockCamera::Request& req, photo::UnlockCamera::Response& resp) {
+  bool unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "11");
       resp.success = error_code_focus_drive;
