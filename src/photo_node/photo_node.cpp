@@ -48,6 +48,7 @@
 #include <photo/SetFocus.h>
 #include <photo/TriggerCapture.h>
 #include <photo/UnlockCamera.h>
+#include <photo/DownloadPictures.h>
 
 // photo library headers
 #include "photo/photo_camera_list.hpp"
@@ -70,6 +71,7 @@ public:
   ros::ServiceServer set_focus_srv_;
   ros::ServiceServer trigger_capture_srv_;
   ros::ServiceServer unlock_camera_srv_;
+  ros::ServiceServer download_pictures_srv_;
 
   PhotoNode() :
     camera_list_(),
@@ -110,6 +112,7 @@ public:
     set_focus_srv_ = private_nh.advertiseService("set_focus", &PhotoNode::setFocus, this);
     trigger_capture_srv_ = private_nh.advertiseService("trigger_capture", &PhotoNode::triggerCapture, this);
     unlock_camera_srv_ = private_nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
+    download_pictures_srv_ = private_nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
   }
 
   ~PhotoNode()
@@ -181,6 +184,10 @@ public:
       resp.success = error_code_focus_drive;
 
       photo_mutex_.unlock();
+      return true;
+  }
+
+  bool downloadPictures(photo::DownloadPictures::Request& req, photo::DownloadPictures::Response& resp) {
       return true;
   }
 };

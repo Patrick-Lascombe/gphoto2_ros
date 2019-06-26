@@ -21,6 +21,7 @@ add_service_files(FILES
   SetFocus.srv
   TriggerCapture.srv
   UnlockCamera.srv
+  DownloadPictures.srv
 )
 
 generate_messages(DEPENDENCIES
