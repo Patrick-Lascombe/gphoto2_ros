@@ -51,8 +51,8 @@ add_library(gphoto2_ros
 add_executable(photo_node src/photo_node/photo_node.cpp)
 add_executable(test_photo src/test_photo/test_photo.cpp)
 
-add_dependencies(photo_node photo_generate_messages_cpp)
-add_dependencies(test_photo photo_generate_messages_cpp)
+add_dependencies(photo_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(test_photo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(gphoto2_ros
   ${OpenCV_LIBRARIES}
