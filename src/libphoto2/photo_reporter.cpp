@@ -36,7 +36,7 @@
 
 #include <cstdio>
 
-#include "photo/photo_reporter.hpp"
+#include "gphoto2_ros/photo_reporter.hpp"
 
 void photo_reporter::contextError( GPContext *context, const char *error_string, void *data )
 {

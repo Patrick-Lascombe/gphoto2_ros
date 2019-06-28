@@ -43,10 +43,10 @@
 //#include <opencv_latest/CvBridge.h>
 //#include <opencv/highgui.h> //for cvLoadImage()
 
-#include <photo/photo.h>
-#include <photo/GetConfig.h>
-#include <photo/SetConfig.h>
-#include <photo/Capture.h>
+#include <gphoto2_ros/photo.h>
+#include <gphoto2_ros/GetConfig.h>
+#include <gphoto2_ros/SetConfig.h>
+#include <gphoto2_ros/Capture.h>
 
 using namespace std;
 
@@ -72,8 +72,8 @@ int main(int argc, char **argv)
 //    printf("Could not query photo/capture service\n");
 //  }
   ros::NodeHandle n;
-  ros::ServiceClient client = n.serviceClient<photo::SetConfig>("/photo/set_config");
-  photo::SetConfig srv;
+  ros::ServiceClient client = n.serviceClient<gphoto2_ros::SetConfig>("/photo/set_config");
+  gphoto2_ros::SetConfig srv;
   srv.request.param = "exptime";
   srv.request.value = "20";
   if( !client.call(srv) )

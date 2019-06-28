@@ -38,7 +38,7 @@
 
 #include <iostream>
 
-#include <photo/photo_image.hpp>
+#include <gphoto2_ros/photo_image.hpp>
 
 photo_image::photo_image( void ) :
   width_(0),

@@ -42,16 +42,16 @@
 #include <sensor_msgs/fill_image.h>
 
 // ROS Services
-#include <photo/GetConfig.h>
-#include <photo/SetConfig.h>
-#include <photo/Capture.h>
-#include <photo/DownloadPictures.h>
+#include <gphoto2_ros/GetConfig.h>
+#include <gphoto2_ros/SetConfig.h>
+#include <gphoto2_ros/Capture.h>
+#include <gphoto2_ros/DownloadPictures.h>
 #include <std_srvs/Trigger.h>
 
 // photo library headers
-#include "photo/photo_camera_list.hpp"
-#include "photo/photo_camera.hpp"
-#include "photo/photo_image.hpp"
+#include "gphoto2_ros/photo_camera_list.hpp"
+#include "gphoto2_ros/photo_camera.hpp"
+#include "gphoto2_ros/photo_image.hpp"
 
 
 class PhotoNode
@@ -119,7 +119,7 @@ public:
     camera_.photo_camera_close();
   }
 
-  bool setConfig( photo::SetConfig::Request& req, photo::SetConfig::Response& resp )
+  bool setConfig( gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp )
   {
     photo_mutex_.lock();
     bool error_code = camera_.photo_camera_set_config( req.param, req.value );
@@ -127,7 +127,7 @@ public:
     return error_code;
   }
 
-  bool getConfig( photo::GetConfig::Request& req, photo::GetConfig::Response& resp )
+  bool getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::GetConfig::Response& resp )
   {
     char* value = new char[255];
     photo_mutex_.lock();
@@ -141,7 +141,7 @@ public:
     return error_code;
   }
 
-  bool capture( photo::Capture::Request& req, photo::Capture::Response& resp )
+  bool capture( gphoto2_ros::Capture::Request& req, gphoto2_ros::Capture::Response& resp )
   {
     // capture a camera image
     photo_mutex_.lock();
@@ -184,7 +184,7 @@ public:
       return true;
   }
 
-  bool downloadPictures(photo::DownloadPictures::Request& req, photo::DownloadPictures::Response& resp) {
+  bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
       return true;
   }
 };

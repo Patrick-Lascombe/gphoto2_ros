@@ -40,9 +40,9 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "photo/photo_reporter.hpp"
+#include "gphoto2_ros/photo_reporter.hpp"
 
-#include "photo/photo_camera.hpp"
+#include "gphoto2_ros/photo_camera.hpp"
 
 
 photo_camera::photo_camera( void ) :
