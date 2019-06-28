@@ -191,7 +191,7 @@ public:
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "photo");
+  ros::init(argc, argv, "photo_node");
   PhotoNode a;
   ros::spin();
 
