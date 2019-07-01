@@ -637,7 +637,7 @@ std::string photo_camera::get_picture_path() {
     int res = gp_camera_wait_for_event(camera_, 1, &evttype, &data, context_);
     std::cout << "Event data" << data <<std::endl;
     if (evttype == GP_EVENT_FILE_ADDED) {
-        path = (CameraFilePath)data;
+//        path = (CameraFilePath)data;
     }
 
 }
