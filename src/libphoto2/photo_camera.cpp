@@ -630,12 +630,15 @@ bool photo_camera::photo_camera_capture_to_file( const std::string& filename )
 }
 
 std::string photo_camera::get_picture_path() {
-    CameraEventType *eventtype;
-    void **eventdata;
-    int timeout = 100;
+    CameraEventType evttype;
+    void *data = NULL;
+    CameraFilePath path;
     std::cout << "waiting for event" << std::endl;
-    int res = gp_camera_wait_for_event(camera_, timeout, eventtype, eventdata, context_);
-    std::cout << "Event data" << eventdata <<std::endl;
+    int res = gp_camera_wait_for_event(camera_, 1, &evttype, &data, context_);
+    std::cout << "Event data" << data <<std::endl;
+    if (evttype == GP_EVENT_FILE_ADDED) {
+        path = (CameraFilePath)data;
+    }
 
 }
 
