@@ -187,6 +187,19 @@ public:
   }
 
   bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
+      CameraFileType type = GP_FILE_TYPE_NORMAL;
+      std::vector<std::string>::iterator str_it;
+      std::string delimiter = "/", folder, filename;
+
+      //Pre treat all the data to get folder and file separated
+      for(str_it = req.camera_paths.begin();
+          str_it != req.camera_paths.end(); str_it++) {
+          int pos;
+
+          str_it->find_last_of('/', pos);
+          folder = str_it->substr(0,pos);
+          filename = str_it->substr(pos+1);
+      }
       return true;
   }
 };
