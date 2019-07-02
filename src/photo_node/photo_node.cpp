@@ -168,9 +168,11 @@ public:
 
   bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       photo_mutex_.lock();
-      bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");
+
+      bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");ros::Time t1 = ros::Time::now();
       std::string path_to_file = camera_.get_picture_path();
       resp.success = error_code_focus_drive;
+      resp.message = path_to_file;
       photo_mutex_.unlock();
       return true;
   }
