@@ -644,11 +644,10 @@ std::string photo_camera::get_picture_path() {
     return complete_path;
 }
 
-bool photo_camera::download_picture(CameraFilePath path) {
+bool photo_camera::download_picture(CameraFilePath path, photo_image *picture) {
 
     int fd, error_code;
     CameraFile *photo_file;
-    photo_image *picture;
     char temp_file_name[20];
 
     // create temporary file
@@ -716,8 +715,8 @@ bool photo_camera::photo_camera_capture( photo_image* image )
   char temp_file_name[20];
 
   // NOP: This gets overridden in the library to /capt0000.jpg
-  strcpy( photo_file_path.folder, "/" );
-  strcpy( photo_file_path.name, "foo.jpg" );
+//  strcpy( photo_file_path.folder, "/" );
+//  strcpy( photo_file_path.name, "foo.jpg" );
 
   error_code = gp_camera_capture( camera_, GP_CAPTURE_IMAGE, &photo_file_path, context_ );
   if( error_code < GP_OK )

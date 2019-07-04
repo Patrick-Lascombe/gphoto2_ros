@@ -95,7 +95,7 @@ public:
 
   std::string get_picture_path();
 
-  bool download_picture(CameraFilePath path);
+  bool download_picture(CameraFilePath path, photo_image *picture);
 
   int photo_camera_find_widget_by_name( std::string name, CameraWidget **child,
                                         CameraWidget **rootconfig );

@@ -209,7 +209,7 @@ public:
           std::strcpy(path.name, filename.c_str());
           std::strcpy(path.folder, folder.c_str());
 
-          camera_.download_picture(path);
+          camera_.download_picture(path, &image_);
 
       }
       return true;
