@@ -635,15 +635,28 @@ std::string photo_camera::get_picture_path() {
     void *data = NULL;
 
     while (evttype != GP_EVENT_FILE_ADDED) {
-        int res = gp_camera_wait_for_event(camera_, 10, &evttype, &data, context_);
+        int res = gp_camera_wait_for_event(camera_, 1, &evttype, &data, context_);
     }
 
     path = static_cast<CameraFilePath*>(data);
     std::string complete_path = path->folder + std::string("/") + path->name;
 
     return complete_path;
+}
 
+bool photo_camera::download_picture(std::string folder, std::string filename, CameraFile* picture) {
 
+    CameraFileType type;
+    std::cout << "gp_camera_file" << std::endl;
+    gp_camera_file_get(camera_, folder.c_str(), filename.c_str(), type, picture, context_);
+    std::cout << "gp_camera_file done" << std::endl;
+
+//    CameraFilesystem *fs;
+//    std::cout << "gp_camera_filesystem" << std::endl;
+//    std::cout << type << std::endl;
+//    gp_filesystem_get_file(fs, "/home/patrick", "test.JPG", type, picture, context_);
+
+    return true;
 }
 
 bool photo_camera::photo_camera_capture( photo_image* image )

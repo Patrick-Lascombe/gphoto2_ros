@@ -40,6 +40,7 @@
 
 // ROS Messages
 #include <sensor_msgs/fill_image.h>
+#include <std_msgs/String.h>
 
 // ROS Services
 #include <gphoto2_ros/GetConfig.h>
@@ -53,6 +54,7 @@
 #include "gphoto2_ros/photo_camera.hpp"
 #include "gphoto2_ros/photo_image.hpp"
 
+typedef void * (*THREADFUNCPTR)(void *);
 
 class PhotoNode
 {
@@ -70,6 +72,8 @@ public:
   ros::ServiceServer trigger_capture_srv_;
   ros::ServiceServer unlock_camera_srv_;
   ros::ServiceServer download_pictures_srv_;
+
+  ros::Publisher path_pub;
 
   PhotoNode() :
     camera_list_(),
@@ -111,6 +115,8 @@ public:
     trigger_capture_srv_ = private_nh.advertiseService("trigger_capture", &PhotoNode::triggerCapture, this);
     unlock_camera_srv_ = private_nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
     download_pictures_srv_ = private_nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
+
+    path_pub = private_nh.advertise<std_msgs::String>("/canon/eos/picutre_path", 10);
   }
 
   ~PhotoNode()
@@ -170,9 +176,7 @@ public:
       photo_mutex_.lock();
 
       bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");ros::Time t1 = ros::Time::now();
-      std::string path_to_file = camera_.get_picture_path();
       resp.success = error_code_focus_drive;
-      resp.message = path_to_file;
       photo_mutex_.unlock();
       return true;
   }
@@ -188,21 +192,35 @@ public:
 
   bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
       CameraFileType type = GP_FILE_TYPE_NORMAL;
+      CameraFile *picture;
       std::vector<std::string>::iterator str_it;
       std::string delimiter = "/", folder, filename;
 
       //Pre treat all the data to get folder and file separated
       for(str_it = req.camera_paths.begin();
           str_it != req.camera_paths.end(); str_it++) {
-          int pos;
+          size_t pos;
 
-          str_it->find_last_of('/', pos);
-          folder = str_it->substr(0,pos);
+          pos = str_it->find_last_of('/');
+          folder = str_it->substr(0, pos);
           filename = str_it->substr(pos+1);
+
+          camera_.download_picture(folder, filename, picture);
+
       }
       return true;
   }
+
+  void recoverPath(){
+      std::string path_to_file = camera_.get_picture_path();
+      std_msgs::String msg;
+      msg.data = path_to_file;
+      path_pub.publish(msg);
+
+  }
+
 };
+
 
 int main(int argc, char **argv)
 {
