@@ -212,6 +212,7 @@ public:
           camera_.download_picture(path, &image_, req.computer_path);
 
       }
+      resp.success = true;
       return true;
   }
 
