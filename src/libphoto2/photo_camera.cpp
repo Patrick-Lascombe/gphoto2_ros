@@ -667,7 +667,6 @@ bool photo_camera::download_picture(CameraFilePath path, photo_image *picture, s
 
     // get image from camera and store in temporary file
     error_code = gp_camera_file_get( camera_, path.folder, path.name, GP_FILE_TYPE_NORMAL, photo_file, context_ );
-    std::cout << "Get finished" << std::endl;
     if( error_code < GP_OK )
     {
       gp_file_unref( photo_file );
@@ -678,9 +677,7 @@ bool photo_camera::download_picture(CameraFilePath path, photo_image *picture, s
     }
 
     // delete image from camera's memory
-    std::cout << "Delete started" << std::endl;
     error_code = gp_camera_file_delete( camera_, path.folder, path.name, context_ );
-    std::cout << "Delete finished" << std::endl;
     if( error_code < GP_OK )
     {
       unlink( temp_file_name );
@@ -691,10 +688,8 @@ bool photo_camera::download_picture(CameraFilePath path, photo_image *picture, s
     }
 
     // load image from temporary file
-    std::cout << "Read started" << std::endl;
     if( picture->photo_image_read( std::string(temp_file_name) ) == true )
-    {
-      std::cout << "Write started" << std::endl;
+    {;
       std::string path_to_save = folder + path.name;
       picture->photo_image_write(path_to_save);
       gp_file_free( photo_file );
