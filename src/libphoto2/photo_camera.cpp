@@ -644,7 +644,7 @@ std::string photo_camera::get_picture_path() {
     return complete_path;
 }
 
-bool photo_camera::download_picture(CameraFilePath path, photo_image *picture) {
+bool photo_camera::download_picture(CameraFilePath path, photo_image *picture, std::string folder) {
 
     int fd, error_code;
     CameraFile *photo_file;
@@ -695,7 +695,8 @@ bool photo_camera::download_picture(CameraFilePath path, photo_image *picture) {
     if( picture->photo_image_read( std::string(temp_file_name) ) == true )
     {
       std::cout << "Write started" << std::endl;
-      picture->photo_image_write("/home/patrick/test2.jpg");
+      std::string path_to_save = folder + path.name;
+      picture->photo_image_write(path_to_save);
       gp_file_free( photo_file );
       unlink( temp_file_name );
       return true;
