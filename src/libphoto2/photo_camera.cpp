@@ -644,19 +644,68 @@ std::string photo_camera::get_picture_path() {
     return complete_path;
 }
 
-bool photo_camera::download_picture(std::string folder, std::string filename, CameraFile* picture) {
+bool photo_camera::download_picture(CameraFilePath path) {
 
-    CameraFileType type;
-    std::cout << "gp_camera_file" << std::endl;
-    gp_camera_file_get(camera_, folder.c_str(), filename.c_str(), type, picture, context_);
-    std::cout << "gp_camera_file done" << std::endl;
+    int fd, error_code;
+    CameraFile *photo_file;
+    photo_image *picture;
+    char temp_file_name[20];
 
-//    CameraFilesystem *fs;
-//    std::cout << "gp_camera_filesystem" << std::endl;
-//    std::cout << type << std::endl;
-//    gp_filesystem_get_file(fs, "/home/patrick", "test.JPG", type, picture, context_);
+    // create temporary file
+    strcpy( temp_file_name, "tmpfileXXXXXX" );
+    fd = mkstemp( temp_file_name );
+    error_code = gp_file_new_from_fd( &photo_file, fd );
+    if( error_code < GP_OK )
+    {
+      close( fd );
+      unlink( temp_file_name );
 
-    return true;
+      photo_reporter::error( "gp_file_new_from_fd()" );
+      gp_context_error( context_, "Could not create a new image file from %s%s (error code %d)\n", path.folder, path.name, error_code );
+      gp_file_free( photo_file );
+      return false;
+    }
+
+    // get image from camera and store in temporary file
+    error_code = gp_camera_file_get( camera_, path.folder, path.name, GP_FILE_TYPE_NORMAL, photo_file, context_ );
+    std::cout << "Get finished" << std::endl;
+    if( error_code < GP_OK )
+    {
+      gp_file_unref( photo_file );
+      unlink( temp_file_name );
+      photo_reporter::error( "gp_camera_file_get()" );
+      gp_context_error( context_, "Could not get file %s%s (error code %d)\n", path.folder, path.name, error_code );
+      return false;
+    }
+
+    // delete image from camera's memory
+    std::cout << "Delete started" << std::endl;
+    error_code = gp_camera_file_delete( camera_, path.folder, path.name, context_ );
+    std::cout << "Delete finished" << std::endl;
+    if( error_code < GP_OK )
+    {
+      unlink( temp_file_name );
+      photo_reporter::error( "gp_camera_file_delete()" );
+      gp_context_error( context_, "Could delete file %s%s  (error code %d)\n", path.folder, path.name, error_code );
+      gp_file_free( photo_file );
+      return false;
+    }
+
+    // load image from temporary file
+    std::cout << "Read started" << std::endl;
+    if( picture->photo_image_read( std::string(temp_file_name) ) == true )
+    {
+      std::cout << "Write started" << std::endl;
+      picture->photo_image_write("/home/patrick/test2.jpg");
+      gp_file_free( photo_file );
+      unlink( temp_file_name );
+      return true;
+    }
+
+    photo_reporter::error( "photo_image_read()" );
+    gp_file_free( photo_file );
+    unlink( temp_file_name );
+    return false;
 }
 
 bool photo_camera::photo_camera_capture( photo_image* image )

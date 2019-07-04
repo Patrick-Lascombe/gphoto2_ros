@@ -192,7 +192,7 @@ public:
 
   bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
       CameraFileType type = GP_FILE_TYPE_NORMAL;
-      CameraFile *picture;
+      photo_image *picture;
       std::vector<std::string>::iterator str_it;
       std::string delimiter = "/", folder, filename;
 
@@ -205,7 +205,11 @@ public:
           folder = str_it->substr(0, pos);
           filename = str_it->substr(pos+1);
 
-          camera_.download_picture(folder, filename, picture);
+          CameraFilePath path;
+          std::strcpy(path.name, filename.c_str());
+          std::strcpy(path.folder, folder.c_str());
+
+          camera_.download_picture(path);
 
       }
       return true;
