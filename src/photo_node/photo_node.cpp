@@ -54,7 +54,7 @@
 #include "gphoto2_ros/photo_camera.hpp"
 #include "gphoto2_ros/photo_image.hpp"
 
-typedef void * (*THREADFUNCPTR)(void *);
+#include <pthread.h>
 
 class PhotoNode
 {
@@ -216,21 +216,25 @@ public:
       return true;
   }
 
-  void recoverPath(){
-      std::string path_to_file = camera_.get_picture_path();
-      std_msgs::String msg;
-      msg.data = path_to_file;
-      path_pub.publish(msg);
 
-  }
 
 };
 
+static PhotoNode a;
+
+void *recoverPathLoop(void *){
+    std::string path_to_file = a.camera_.get_picture_path();
+    std_msgs::String msg;
+    msg.data = path_to_file;
+    a.path_pub.publish(msg);
+
+}
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "photo_node");
-  PhotoNode a;
+  pthread_t recover_paths;
+  pthread_create(&recover_paths, NULL, recoverPathLoop, NULL);
   ros::spin();
 
   return 0;
