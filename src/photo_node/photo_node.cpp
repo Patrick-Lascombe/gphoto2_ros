@@ -55,6 +55,7 @@
 #include "gphoto2_ros/photo_image.hpp"
 
 #include <pthread.h>
+enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
 
 class PhotoNode
 {
@@ -73,7 +74,14 @@ public:
   ros::ServiceServer unlock_camera_srv_;
   ros::ServiceServer download_pictures_srv_;
 
-  ros::Publisher path_pub;
+  ros::Publisher path_pub_;
+
+  std::vector<std::string> files_to_download_;
+  std::string folder_;
+
+  std::vector<Task> tasks_;
+
+  bool exit_loop_;
 
   PhotoNode() :
     camera_list_(),
@@ -116,7 +124,7 @@ public:
     unlock_camera_srv_ = private_nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
     download_pictures_srv_ = private_nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
 
-    path_pub = private_nh.advertise<std_msgs::String>("/canon/eos/picutre_path", 10);
+    path_pub_ = private_nh.advertise<std_msgs::String>("/canon/eos/picutre_path", 10);
   }
 
   ~PhotoNode()
@@ -163,42 +171,60 @@ public:
 
   bool setFocus(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
   {
+      tasks_.push_back(set_focus);
+      resp.success = true;
+      return true;
+  }
+
+  bool setFocus()
+  {
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("autofocusdrive", "true");
       ros::Duration(0.5).sleep();
       bool error_code_cancel_focus = camera_.photo_camera_set_config("cancelautofocus", "true");
-      resp.success = error_code_focus_drive && error_code_cancel_focus;
       photo_mutex_.unlock();
-      return true;
   }
 
   bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
-      photo_mutex_.lock();
-
-      bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");ros::Time t1 = ros::Time::now();
-      resp.success = error_code_focus_drive;
-      photo_mutex_.unlock();
+      tasks_.push_back(trigger_capture);
+      resp.success = true;
       return true;
+  }
+
+  bool triggerCapture() {
+      photo_mutex_.lock();
+      bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");
+      photo_mutex_.unlock();
   }
 
   bool unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
-      photo_mutex_.lock();
-      bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "11");
-      resp.success = error_code_focus_drive;
-
-      photo_mutex_.unlock();
+      tasks_.push_back(unlock_camera);
+      resp.success = true;
       return true;
   }
 
+  bool unlockCamera() {
+      photo_mutex_.lock();
+      bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "11");
+      photo_mutex_.unlock();
+  }
+
   bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
-      CameraFileType type = GP_FILE_TYPE_NORMAL;
-      photo_image *picture;
+      tasks_.push_back(download_pictures);
+      files_to_download_ = req.camera_paths;
+      folder_ = req.computer_path;
+      resp.success = true;
+      return true;
+  }
+
+  bool downloadPictures() {
       std::vector<std::string>::iterator str_it;
+
       std::string delimiter = "/", folder, filename;
 
       //Pre treat all the data to get folder and file separated
-      for(str_it = req.camera_paths.begin();
-          str_it != req.camera_paths.end(); str_it++) {
+      for(str_it = files_to_download_.begin();
+          str_it != files_to_download_.end(); str_it++) {
           size_t pos;
 
           pos = str_it->find_last_of('/');
@@ -209,34 +235,72 @@ public:
           std::strcpy(path.name, filename.c_str());
           std::strcpy(path.folder, folder.c_str());
 
-          camera_.download_picture(path, &image_, req.computer_path);
+          camera_.download_picture(path, &image_, folder_);
 
       }
-      resp.success = true;
-      return true;
   }
 
+  bool recoverPath() {
+      std::string path_to_file = camera_.get_picture_path();
+
+      if(path_to_file != "") {
+          std_msgs::String msg;
+          msg.data = path_to_file;
+          path_pub_.publish(msg);
+      }
+  }
+
+  bool stop(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+      exit_loop_ = true;
+  }
+
+  bool mainLoop() {
+      std::vector<Task> tasked;
+
+      if(tasks_.size() > 0) {
+          switch(tasks_[0]) {
+              case set_focus:
+                  std::cout << "Task set focus" << std::endl;
+                  setFocus();
+                  break;
 
 
+              case trigger_capture:
+                  std::cout << "Task trigger capture" << std::endl;
+                  triggerCapture();
+                  break;
+
+
+              case unlock_camera:
+                  std::cout << "Task unlock camera" << std::endl;
+                  unlockCamera();
+                  break;
+
+
+              case download_pictures:
+                  std::cout << "Task download pictures" << std::endl;
+                  downloadPictures();
+                  break;
+
+        }
+        tasks_.erase(tasks_.begin());
+      }
+
+    recoverPath();
+
+  }
 };
-
-
-void *recoverPathLoop(void *a){
-    std::cout << "In recover path node" << std::endl;
-    std::string path_to_file = static_cast<PhotoNode*>(a)->camera_.get_picture_path();
-    std_msgs::String msg;
-    msg.data = path_to_file;
-    static_cast<PhotoNode*>(a)->path_pub.publish(msg);
-
-}
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "photo_node");
   static PhotoNode a;
-  pthread_t recover_paths;
-  pthread_create(&recover_paths, NULL, recoverPathLoop, static_cast<void*>(&a));
-  ros::spin();
+  ros::Rate r(50);
+  while (ros::ok()){
+    a.mainLoop();
+    ros::spinOnce();
+    r.sleep();
+  }
 
   return 0;
 }

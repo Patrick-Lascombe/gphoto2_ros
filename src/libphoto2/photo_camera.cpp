@@ -633,20 +633,19 @@ std::string photo_camera::get_picture_path() {
     CameraEventType evttype = GP_EVENT_UNKNOWN;
     CameraFilePath * path;
     void *data = NULL;
-    clock_t begin = clock();
-    double elapsed_secs = 0;
 
-    while ((evttype != GP_EVENT_FILE_ADDED) || (elapsed_secs> 0.05)) {
-        std::cout << "In while" << std::endl;
-        int res = gp_camera_wait_for_event(camera_, 1, &evttype, &data, context_);
-        clock_t end = clock();
-        double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+    int res = gp_camera_wait_for_event(camera_, 1, &evttype, &data, context_);
+
+    if (evttype == GP_EVENT_FILE_ADDED) {
+        path = static_cast<CameraFilePath*>(data);
+        std::string complete_path = path->folder + std::string("/") + path->name;
+
+        return complete_path;
+    }
+    else {
+        return "";
     }
 
-    path = static_cast<CameraFilePath*>(data);
-    std::string complete_path = path->folder + std::string("/") + path->name;
-
-    return complete_path;
 }
 
 bool photo_camera::download_picture(CameraFilePath path, photo_image *picture, std::string folder) {
