@@ -220,21 +220,22 @@ public:
 
 };
 
-static PhotoNode a;
 
-void *recoverPathLoop(void *){
-    std::string path_to_file = a.camera_.get_picture_path();
+void *recoverPathLoop(void *a){
+    std::cout << "In recover path node" << std::endl;
+    std::string path_to_file = static_cast<PhotoNode*>(a)->camera_.get_picture_path();
     std_msgs::String msg;
     msg.data = path_to_file;
-    a.path_pub.publish(msg);
+    static_cast<PhotoNode*>(a)->path_pub.publish(msg);
 
 }
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "photo_node");
+  static PhotoNode a;
   pthread_t recover_paths;
-  pthread_create(&recover_paths, NULL, recoverPathLoop, NULL);
+  pthread_create(&recover_paths, NULL, recoverPathLoop, static_cast<void*>(&a));
   ros::spin();
 
   return 0;
