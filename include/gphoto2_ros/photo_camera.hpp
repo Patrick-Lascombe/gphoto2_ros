@@ -37,7 +37,6 @@
 #define __PHOTO_CAMERA__
 
 //#include <string>
-
 #include <gphoto2/gphoto2-camera.h>
 #include <gphoto2/gphoto2-context.h>
 #include <gphoto2/gphoto2-setting.h>
@@ -46,6 +45,8 @@
 
 #include "gphoto2_ros/photo_camera_list.hpp"
 #include "gphoto2_ros/photo_image.hpp"
+#include <boost/thread.hpp>
+
 
 class photo_camera
 {
@@ -93,7 +94,7 @@ public:
   //* capture an image to file
   bool photo_camera_capture_to_file( const std::string& filename );
 
-  std::string get_picture_path();
+  std::string get_picture_path(boost::mutex *photo_mutex_);
 
   bool download_picture(CameraFilePath path, photo_image *picture, std::string folder);
 

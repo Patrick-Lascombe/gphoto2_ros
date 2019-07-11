@@ -629,12 +629,15 @@ bool photo_camera::photo_camera_capture_to_file( const std::string& filename )
   return true;
 }
 
-std::string photo_camera::get_picture_path() {
+std::string photo_camera::get_picture_path(boost::mutex *photo_mutex_) {
     CameraEventType evttype = GP_EVENT_UNKNOWN;
     CameraFilePath * path;
     void *data = NULL;
 
+    // Put mutex around here
+    photo_mutex_->lock();
     int res = gp_camera_wait_for_event(camera_, 1, &evttype, &data, context_);
+    photo_mutex_->unlock();
 
     if (evttype == GP_EVENT_FILE_ADDED) {
         path = static_cast<CameraFilePath*>(data);
