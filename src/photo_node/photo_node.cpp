@@ -73,6 +73,7 @@ public:
   ros::ServiceServer unlock_camera_srv_;
   ros::ServiceServer download_pictures_srv_;
   ros::ServiceServer get_path_srv_;
+  ros::ServiceServer exit_loop_srv_;
 
   ros::Publisher path_pub_;
   std::vector<Task> tasks_;
@@ -120,8 +121,9 @@ public:
     unlock_camera_srv_ = private_nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
     download_pictures_srv_ = private_nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
     get_path_srv_ = private_nh.advertiseService("recover_path", &PhotoNode::recoverPath, this);
+    exit_loop_srv_ = private_nh.advertiseService("exit_loop", &PhotoNode::exitLoop, this);
 
-    path_pub_ = private_nh.advertise<std_msgs::String>("/canon/eos/picutre_path", 10);
+    path_pub_ = private_nh.advertise<std_msgs::String>("/canon/eos/picture_path", 10);
   }
 
   ~PhotoNode()
@@ -179,6 +181,7 @@ public:
   }
 
   bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+      std::cout << "triggering capture" << std::endl;
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");
       photo_mutex_.unlock();
@@ -199,22 +202,33 @@ public:
 
       std::string delimiter = "/", folder, filename;
 
+      ros::Time t_begin = ros::Time::now();
+      ros::Duration mean_time;
+      mean_time.fromSec(0);
       //Pre treat all the data to get folder and file separated
       for(str_it = req.camera_paths.begin();
           str_it != req.camera_paths.end(); str_it++) {
           size_t pos;
 
           pos = str_it->find_last_of('/');
-          folder = str_it->substr(0, pos);
+          folder = str_it->substr(0, pos+1);
           filename = str_it->substr(pos+1);
 
           CameraFilePath path;
           std::strcpy(path.name, filename.c_str());
           std::strcpy(path.folder, folder.c_str());
+          ros::Time t_lock = ros::Time::now();
 
+          photo_mutex_.lock();
           camera_.download_picture(path, &image_, req.computer_path);
+          photo_mutex_.unlock();
 
+          ros::Time t_unlock = ros::Time::now();
+          mean_time += (t_unlock - t_lock);
       }
+      ros::Time t_end = ros::Time::now();
+      std::cout << "Total duration : " << (t_end - t_begin).toSec() << " for " << req.camera_paths.size() << " pictutes" << std::endl;
+      std::cout << "Mean lock time per pic : " << mean_time.toSec()/req.camera_paths.size() << std::endl;
       resp.success = true;
       return true;
   }
@@ -222,7 +236,7 @@ public:
   bool recoverPath(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       ros::Rate r(100);
       exit_loop_ = false;
-      while(ros::ok()) {
+      while(!exit_loop_) {
 
           std::string path_to_file = camera_.get_picture_path(&photo_mutex_);
 
@@ -233,6 +247,12 @@ public:
           }
           r.sleep();
       }
+      resp.success = true;
+      return true;
+  }
+
+  bool exitLoop(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+      exit_loop_ = true;
       resp.success = true;
       return true;
   }

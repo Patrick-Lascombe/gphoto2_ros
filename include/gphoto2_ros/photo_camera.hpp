@@ -96,6 +96,7 @@ public:
 
   std::string get_picture_path(boost::mutex *photo_mutex_);
 
+  bool download_picture(CameraFilePath path, std::string folder);
   bool download_picture(CameraFilePath path, photo_image *picture, std::string folder);
 
   int photo_camera_find_widget_by_name( std::string name, CameraWidget **child,

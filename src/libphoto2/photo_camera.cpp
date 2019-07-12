@@ -651,6 +651,20 @@ std::string photo_camera::get_picture_path(boost::mutex *photo_mutex_) {
 
 }
 
+
+bool photo_camera::download_picture(CameraFilePath path, std::string folder) {
+    CameraFile *photo_file;
+    const char *filename = strcat(path.folder, path.name);
+    int error_code;
+
+    error_code = gp_file_open(photo_file, filename);
+    std::cout << "Error code open : " << error_code << std::endl;
+
+    error_code = gp_file_save(photo_file, (folder + path.name).c_str());
+    std::cout << "Error code save : " << error_code << std::endl;
+
+}
+
 bool photo_camera::download_picture(CameraFilePath path, photo_image *picture, std::string folder) {
 
     int fd, error_code;
@@ -728,7 +742,6 @@ bool photo_camera::photo_camera_capture( photo_image* image )
     gp_context_error( context_, "Could not capture image  (error code %d)\n", error_code );
     return false;
   }
-
   // create temporary file
   strcpy( temp_file_name, "tmpfileXXXXXX" );
   fd = mkstemp( temp_file_name );
