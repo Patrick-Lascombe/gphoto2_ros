@@ -654,21 +654,37 @@ std::string photo_camera::get_picture_path(boost::mutex *photo_mutex_) {
 
 bool photo_camera::download_picture(CameraFilePath path, std::string folder) {
     CameraFile *photo_file;
-    const char *filename = strcat(path.folder, path.name);
+//    const char *filename = strcat(path.folder, path.name);
     int error_code;
+    const char *image_data;
+    unsigned long int size;
 
-    error_code = gp_file_open(photo_file, filename);
-    std::cout << "Error code open : " << error_code << std::endl;
+    gp_file_new(&photo_file);
 
-    error_code = gp_file_save(photo_file, (folder + path.name).c_str());
-    std::cout << "Error code save : " << error_code << std::endl;
+    error_code = gp_camera_file_get(camera_, path.folder, path.name, GP_FILE_TYPE_NORMAL, photo_file, context_);
+    if (error_code < GP_OK) {
+        gp_file_free(photo_file);
+        photo_reporter::error( "gp_camera_file_get()" );
+        gp_context_error( context_, "Could not get file %s%s (error code %d)\n", path.folder, path.name, error_code );
+        return false;
+    }
 
+    error_code = gp_file_get_data_and_size(photo_file, &image_data, &size);
+    if (error_code < GP_OK) {
+        gp_file_free(photo_file);
+        photo_reporter::error( "gp_camera_file_get()" );
+        gp_context_error( context_, "Could not get data and size %s%s (error code %d)\n", path.folder, path.name, error_code );
+        return false;
+    }
+
+    return true;
 }
 
 bool photo_camera::download_picture(CameraFilePath path, photo_image *picture, std::string folder) {
 
     int fd, error_code;
     CameraFile *photo_file;
+
     char temp_file_name[20];
 
     // create temporary file

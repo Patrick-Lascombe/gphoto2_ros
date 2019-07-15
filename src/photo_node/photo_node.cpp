@@ -220,7 +220,7 @@ public:
           ros::Time t_lock = ros::Time::now();
 
           photo_mutex_.lock();
-          camera_.download_picture(path, &image_, req.computer_path);
+          camera_.download_picture(path, req.computer_path);
           photo_mutex_.unlock();
 
           ros::Time t_unlock = ros::Time::now();
