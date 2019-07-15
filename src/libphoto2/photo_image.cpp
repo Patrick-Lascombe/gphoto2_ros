@@ -127,13 +127,13 @@ bool photo_image::photo_image_read( const std::string& filename )
       // This assumes the image is 24-bit RGB. Needs improvement to handle other image types.
       const cv::Vec3b& pixel = img.at<cv::Vec3b>(r, c);
 
-      uint8_t R = pixel[2]; // Red
-      uint8_t G = pixel[1]; // Green
-      uint8_t B = pixel[0]; // Blue
+//      uint8_t R = pixel[2]; // Red
+//      uint8_t G = pixel[1]; // Green
+//      uint8_t B = pixel[0]; // Blue
 
-      data_[n++] = R; // R
-      data_[n++] = G; // G
-      data_[n++] = B; // B
+      data_[n++] = pixel[2]; // R
+      data_[n++] = pixel[1]; // G
+      data_[n++] = pixel[0]; // B
     }
   }
   return true;
