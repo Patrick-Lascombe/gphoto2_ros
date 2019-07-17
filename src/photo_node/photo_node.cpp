@@ -181,7 +181,7 @@ public:
   }
 
   bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
-      std::cout << "triggering capture" << std::endl;
+      std::cout << "Triggering capture service" << std::endl;
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");
       photo_mutex_.unlock();
@@ -266,5 +266,6 @@ int main(int argc, char **argv)
   PhotoNode a;
   spinner.start();
   ros::waitForShutdown();
+  a.~PhotoNode();
 
 }
