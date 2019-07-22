@@ -155,6 +155,7 @@ public:
     return error_code;
   }
 
+  //Old capture from the original wrapper : Is doing a full press and release, and then download the picture using a non optimal method (Maybe delete this part)
   bool capture( gphoto2_ros::Capture::Request& req, gphoto2_ros::Capture::Response& resp )
   {
     // capture a camera image
@@ -169,6 +170,7 @@ public:
     return error_code;
   }
 
+  //Set the focus of the camera, the sleep in the middle of the function is necessary to give the camera time to focus properly
   bool setFocus(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
   {
       photo_mutex_.lock();
@@ -180,6 +182,7 @@ public:
       return true;
   }
 
+  //Take instantaneously a picture and save it in the memory card (be sure that captureTarget = 1 in the camera config)
   bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       std::cout << "Triggering capture service" << std::endl;
       photo_mutex_.lock();
@@ -189,6 +192,7 @@ public:
       return true;
   }
 
+  //After taking pictures using triggerCapture the camera is locked in a state, this function unlock the camera and allow us to execute other actions
   bool unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "11");
@@ -197,6 +201,8 @@ public:
       return true;
   }
 
+  //Downaload all the pictures in the contained in the req.camera_paths field (complete paths are necessary)
+  // into a folder precised in req.computer_path
   bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
       std::vector<std::string>::iterator str_it;
 
@@ -233,6 +239,8 @@ public:
       return true;
   }
 
+  // This service must be running in a different thread all the time to recover the paths of the pictures that are taken
+  // it listen to the events coming from the camera on a loop, and save the path of the picture taken when the right events is coming
   bool recoverPath(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       ros::Rate r(100);
       exit_loop_ = false;
@@ -251,6 +259,7 @@ public:
       return true;
   }
 
+  // This service must be used to exit properly the recoverPathLoop (This needs to be improved and cleaned)
   bool exitLoop(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       exit_loop_ = true;
       resp.success = true;
