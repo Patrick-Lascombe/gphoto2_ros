@@ -34,59 +34,15 @@
  *
  *********************************************************************/
 
-// ROS Headers
-#include <ros/ros.h>
-#include <self_test/self_test.h>
+#include <gphoto2_ros/photo_node.h>
 
-// ROS Messages
-#include <sensor_msgs/fill_image.h>
-#include <std_msgs/String.h>
-
-// ROS Services
-#include <gphoto2_ros/GetConfig.h>
-#include <gphoto2_ros/SetConfig.h>
-#include <gphoto2_ros/Capture.h>
-#include <gphoto2_ros/DownloadPictures.h>
-#include <std_srvs/Trigger.h>
-
-// photo library headers
-#include "gphoto2_ros/photo_camera_list.hpp"
-#include "gphoto2_ros/photo_camera.hpp"
-#include "gphoto2_ros/photo_image.hpp"
-
-enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
-
-class PhotoNode
-{
-public:
-  photo_camera_list camera_list_;
-  photo_camera camera_;
-  photo_image image_;
-
-  boost::mutex photo_mutex_ ;
-
-  ros::ServiceServer set_config_srv_;
-  ros::ServiceServer get_config_srv_;
-  ros::ServiceServer capture_srv_;
-  ros::ServiceServer set_focus_srv_;
-  ros::ServiceServer trigger_capture_srv_;
-  ros::ServiceServer unlock_camera_srv_;
-  ros::ServiceServer download_pictures_srv_;
-  ros::ServiceServer get_path_srv_;
-  ros::ServiceServer exit_loop_srv_;
-
-  ros::Publisher path_pub_;
-  std::vector<Task> tasks_;
-
-  bool exit_loop_;
-
-  PhotoNode() :
+PhotoNode::PhotoNode(std::string name) :
     camera_list_(),
     camera_(),
     image_()
   {
 
-    ros::NodeHandle private_nh("~");
+    ros::NodeHandle private_nh("~" + name);
     GPContext* private_context;
 
     // initialize camera
@@ -126,14 +82,15 @@ public:
     path_pub_ = private_nh.advertise<std_msgs::String>("/canon/eos/picture_path", 10);
   }
 
-  ~PhotoNode()
+
+PhotoNode::~PhotoNode()
   {
     // shutdown camera
     exit_loop_ = true;
     camera_.photo_camera_close();
   }
 
-  bool setConfig( gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp )
+  bool PhotoNode::setConfig( gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp )
   {
     photo_mutex_.lock();
     bool error_code = camera_.photo_camera_set_config( req.param, req.value );
@@ -141,7 +98,7 @@ public:
     return error_code;
   }
 
-  bool getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::GetConfig::Response& resp )
+  bool PhotoNode::getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::GetConfig::Response& resp )
   {
     char* value = new char[255];
     photo_mutex_.lock();
@@ -156,7 +113,7 @@ public:
   }
 
   //Old capture from the original wrapper : Is doing a full press and release, and then download the picture using a non optimal method (Maybe delete this part)
-  bool capture( gphoto2_ros::Capture::Request& req, gphoto2_ros::Capture::Response& resp )
+  bool PhotoNode::capture( gphoto2_ros::Capture::Request& req, gphoto2_ros::Capture::Response& resp )
   {
     // capture a camera image
     photo_mutex_.lock();
@@ -171,7 +128,7 @@ public:
   }
 
   //Set the focus of the camera, the sleep in the middle of the function is necessary to give the camera time to focus properly
-  bool setFocus(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
+  bool PhotoNode::setFocus(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
   {
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("autofocusdrive", "true");
@@ -183,7 +140,7 @@ public:
   }
 
   //Take instantaneously a picture and save it in the memory card (be sure that captureTarget = 1 in the camera config)
-  bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+  bool PhotoNode::triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       std::cout << "Triggering capture service" << std::endl;
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");
@@ -193,7 +150,7 @@ public:
   }
 
   //After taking pictures using triggerCapture the camera is locked in a state, this function unlock the camera and allow us to execute other actions
-  bool unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+  bool PhotoNode::unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       photo_mutex_.lock();
       bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "11");
       photo_mutex_.unlock();
@@ -203,7 +160,7 @@ public:
 
   //Downaload all the pictures in the contained in the req.camera_paths field (complete paths are necessary)
   // into a folder precised in req.computer_path
-  bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
+  bool PhotoNode::downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
       std::vector<std::string>::iterator str_it;
 
       std::string delimiter = "/", folder, filename;
@@ -241,7 +198,7 @@ public:
 
   // This service must be running in a different thread all the time to recover the paths of the pictures that are taken
   // it listen to the events coming from the camera on a loop, and save the path of the picture taken when the right events is coming
-  bool recoverPath(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+  bool PhotoNode::recoverPath(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       ros::Rate r(100);
       exit_loop_ = false;
       while(!exit_loop_) {
@@ -260,21 +217,19 @@ public:
   }
 
   // This service must be used to exit properly the recoverPathLoop (This needs to be improved and cleaned)
-  bool exitLoop(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+  bool PhotoNode::exitLoop(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
       exit_loop_ = true;
       resp.success = true;
       return true;
   }
 
-};
+//int main(int argc, char **argv)
+//{
+//  ros::init(argc, argv, "photo_node");
+//  ros::AsyncSpinner spinner(2);
+//  PhotoNode a;
+//  spinner.start();
+//  ros::waitForShutdown();
+//  a.~PhotoNode();
 
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "photo_node");
-  ros::AsyncSpinner spinner(2);
-  PhotoNode a;
-  spinner.start();
-  ros::waitForShutdown();
-  a.~PhotoNode();
-
-}
+//}
