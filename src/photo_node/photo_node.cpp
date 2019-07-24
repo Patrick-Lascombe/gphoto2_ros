@@ -42,7 +42,7 @@ PhotoNode::PhotoNode(std::string name) :
     image_()
   {
 
-    ros::NodeHandle private_nh("~" + name);
+    ros::NodeHandle nh("~" + name);
     GPContext* private_context;
 
     // initialize camera
@@ -55,7 +55,7 @@ PhotoNode::PhotoNode(std::string name) :
     {
       ROS_FATAL( "photo_node: Autodetection of cameras failed." );
       gp_context_unref( private_context );
-      private_nh.shutdown();
+      nh.shutdown();
       return;
     }
 
@@ -64,22 +64,22 @@ PhotoNode::PhotoNode(std::string name) :
     {
       ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
       gp_context_unref( private_context );
-      private_nh.shutdown();
+      nh.shutdown();
       return;
     }
 
     // ***** Start Services *****
-    set_config_srv_ = private_nh.advertiseService("set_config", &PhotoNode::setConfig, this);
-    get_config_srv_ = private_nh.advertiseService("get_config", &PhotoNode::getConfig, this);
-    capture_srv_ = private_nh.advertiseService("capture", &PhotoNode::capture, this);
-    set_focus_srv_ = private_nh.advertiseService("set_focus", &PhotoNode::setFocus, this);
-    trigger_capture_srv_ = private_nh.advertiseService("trigger_capture", &PhotoNode::triggerCapture, this);
-    unlock_camera_srv_ = private_nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
-    download_pictures_srv_ = private_nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
-    get_path_srv_ = private_nh.advertiseService("recover_path", &PhotoNode::recoverPath, this);
-    exit_loop_srv_ = private_nh.advertiseService("exit_loop", &PhotoNode::exitLoop, this);
+    set_config_srv_ = nh.advertiseService("set_config", &PhotoNode::setConfig, this);
+    get_config_srv_ = nh.advertiseService("get_config", &PhotoNode::getConfig, this);
+    capture_srv_ = nh.advertiseService("capture", &PhotoNode::capture, this);
+    set_focus_srv_ = nh.advertiseService("set_focus", &PhotoNode::setFocus, this);
+    trigger_capture_srv_ = nh.advertiseService("trigger_capture", &PhotoNode::triggerCapture, this);
+    unlock_camera_srv_ = nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
+    download_pictures_srv_ = nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
+    get_path_srv_ = nh.advertiseService("recover_path", &PhotoNode::recoverPath, this);
+    exit_loop_srv_ = nh.advertiseService("exit_loop", &PhotoNode::exitLoop, this);
 
-    path_pub_ = private_nh.advertise<std_msgs::String>("/canon/eos/picture_path", 10);
+    path_pub_ = nh.advertise<std_msgs::String>(name + "/canon/eos/picture_path", 10);
   }
 
 
@@ -223,13 +223,13 @@ PhotoNode::~PhotoNode()
       return true;
   }
 
-//int main(int argc, char **argv)
-//{
-//  ros::init(argc, argv, "photo_node");
-//  ros::AsyncSpinner spinner(2);
-//  PhotoNode a;
-//  spinner.start();
-//  ros::waitForShutdown();
-//  a.~PhotoNode();
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "photo_node");
+  ros::AsyncSpinner spinner(2);
+  PhotoNode a("");
+  spinner.start();
+  ros::waitForShutdown();
+  a.~PhotoNode();
 
-//}
+}

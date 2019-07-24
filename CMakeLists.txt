@@ -46,24 +46,23 @@ add_library(gphoto2_ros
    src/libphoto2/photo_camera_list.cpp
    src/libphoto2/photo_camera.cpp
    src/libphoto2/photo_image.cpp
-   src/photo_node/photo_node.cpp
 )
 
-#add_executable(photo_node src/photo_node/photo_node.cpp)
+add_executable(photo_node src/photo_node/photo_node.cpp)
 add_executable(test_photo src/test_photo/test_photo.cpp)
 
-#add_dependencies(photo_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(photo_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(test_photo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(gphoto2_ros
   ${OpenCV_LIBRARIES}
 )  
 
-#target_link_libraries(photo_node
-#  gphoto2_ros
-#  ${catkin_LIBRARIES}
-#  ${gphoto2_LIBRARIES}
-#)
+target_link_libraries(photo_node
+  gphoto2_ros
+  ${catkin_LIBRARIES}
+  ${gphoto2_LIBRARIES}
+)
 
 target_link_libraries(test_photo
   gphoto2_ros
@@ -71,7 +70,7 @@ target_link_libraries(test_photo
   ${OpenCV_LIBRARIES}
 )
 
-install(TARGETS gphoto2_ros  test_photo# photo_node
+install(TARGETS gphoto2_ros  test_photo photo_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
