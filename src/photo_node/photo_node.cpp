@@ -79,7 +79,7 @@ PhotoNode::PhotoNode(std::string name) :
     get_path_srv_ = nh.advertiseService("recover_path", &PhotoNode::recoverPath, this);
     exit_loop_srv_ = nh.advertiseService("exit_loop", &PhotoNode::exitLoop, this);
 
-    path_pub_ = nh.advertise<std_msgs::String>(name + "/canon/eos/picture_path", 10);
+    path_pub_ = nh.advertise<std_msgs::String>("canon/eos/picture_path", 10);
   }
 
 
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "photo_node");
   ros::AsyncSpinner spinner(2);
-  PhotoNode a("");
+  PhotoNode a("camera_top");
   spinner.start();
   ros::waitForShutdown();
   a.~PhotoNode();
