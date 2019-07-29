@@ -47,7 +47,7 @@ public:
 
   bool exit_loop_;
 
-  PhotoNode(std::string name);
+  PhotoNode();
   ~PhotoNode();
   bool setConfig(gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp);
   bool getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::GetConfig::Response& resp);

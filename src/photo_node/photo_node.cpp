@@ -36,14 +36,20 @@
 
 #include <gphoto2_ros/photo_node.h>
 
-PhotoNode::PhotoNode(std::string name) :
+PhotoNode::PhotoNode() :
     camera_list_(),
     camera_(),
     image_()
   {
 
-    ros::NodeHandle nh("~" + name);
+    ros::NodeHandle nh("~");
     GPContext* private_context;
+
+    std::string usb;
+    std::string model;
+    //Get camera params
+    nh.getParam("usb", usb);
+    nh.getParam("model", model);
 
     // initialize camera
 
@@ -60,12 +66,22 @@ PhotoNode::PhotoNode(std::string name) :
     }
 
     // open camera from camera list
-    if( camera_.photo_camera_open( &camera_list_, 0 ) == false )
-    {
-      ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
-      gp_context_unref( private_context );
-      nh.shutdown();
-      return;
+    if(model != "" && usb != "") {
+        if( camera_.photo_camera_open( &camera_list_, model, usb ) == false )
+        {
+          ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
+          gp_context_unref( private_context );
+          nh.shutdown();
+          return;
+        }
+    } else {
+        if( camera_.photo_camera_open( &camera_list_, 0 ) == false )
+        {
+          ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
+          gp_context_unref( private_context );
+          nh.shutdown();
+          return;
+        }
     }
 
     // ***** Start Services *****
@@ -227,7 +243,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "photo_node");
   ros::AsyncSpinner spinner(2);
-  PhotoNode a("camera_top");
+  PhotoNode a;
   spinner.start();
   ros::waitForShutdown();
   a.~PhotoNode();
