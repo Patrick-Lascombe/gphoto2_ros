@@ -42,14 +42,15 @@ PhotoNode::PhotoNode() :
   image_()
 {
 
-  ros::NodeHandle nh("~");
+  ros::NodeHandle nh_priv("~");
+  ros::NodeHandle nh("");
   GPContext* private_context;
 
   std::string usb;
   std::string model;
   //Get camera params
-  nh.getParam("usb", usb);
-  nh.getParam("model", model);
+  nh_priv.getParam("usb", usb);
+  nh_priv.getParam("model", model);
 
   // initialize camera
 
@@ -62,6 +63,7 @@ PhotoNode::PhotoNode() :
     ROS_FATAL( "photo_node: Autodetection of cameras failed." );
     gp_context_unref( private_context );
     nh.shutdown();
+    nh_priv.shutdown();
     return;
   }
 
@@ -72,6 +74,7 @@ PhotoNode::PhotoNode() :
       ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
       gp_context_unref( private_context );
       nh.shutdown();
+      nh_priv.shutdown();
       return;
     }
   } else {
