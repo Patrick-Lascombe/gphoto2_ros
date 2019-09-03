@@ -101,7 +101,7 @@ public:
 
   int photo_camera_find_widget_by_name( std::string name, CameraWidget **child,
                                         CameraWidget **rootconfig );
-
+  bool delete_pictures(CameraFilePath path);
 private:
   bool photo_camera_check_toggle_value( const std::string& value_in, int* value_out );
 };

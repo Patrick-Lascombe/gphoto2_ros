@@ -820,5 +820,16 @@ bool photo_camera::photo_camera_capture( photo_image* image )
   return false;
 }
 
+bool photo_camera::delete_pictures(CameraFilePath path) {
+    int error_code;
+    error_code = gp_camera_file_delete( camera_, path.folder, path.name, context_ );
+    if( error_code < GP_OK )
+    {
+      photo_reporter::error( "gp_camera_file_delete()" );
+      gp_context_error( context_, "Could delete file %s%s  (error code %d)\n", path.folder, path.name, error_code );
+      return false;
+    }
+}
+
 
 
