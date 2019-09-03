@@ -20,6 +20,7 @@ add_service_files(FILES
   GetConfig.srv
   SetConfig.srv
   DownloadPictures.srv
+  GetPicturePathList.srv
 )
 
 generate_messages(DEPENDENCIES

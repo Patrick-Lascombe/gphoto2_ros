@@ -14,6 +14,7 @@
 #include <gphoto2_ros/SetConfig.h>
 #include <gphoto2_ros/Capture.h>
 #include <gphoto2_ros/DownloadPictures.h>
+#include <gphoto2_ros/GetPicturePathList.h>
 #include <std_srvs/Trigger.h>
 
 // photo library headers
@@ -39,11 +40,14 @@ public:
   ros::ServiceServer trigger_capture_srv_;
   ros::ServiceServer unlock_camera_srv_;
   ros::ServiceServer download_pictures_srv_;
-  ros::ServiceServer get_path_srv_;
-  ros::ServiceServer exit_loop_srv_;
+  ros::ServiceServer get_picture_path_list_srv_;
+  ros::ServiceServer reset_picture_path_list_srv_;
 
   ros::Publisher path_pub_;
+  ros::Timer picutre_path_timer_;
+
   std::vector<Task> tasks_;
+  std::vector<std::string> picture_path_list;
 
   bool exit_loop_;
 
@@ -56,9 +60,9 @@ public:
   bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
   bool unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
   bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp);
-  bool recoverPath(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
-  bool exitLoop(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
-
+  bool getPicturePathList(gphoto2_ros::GetPicturePathList::Request& req, gphoto2_ros::GetPicturePathList::Response& resp);
+  bool resetPicturePathList(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
+  void picturePathTimerCallback(const ros::TimerEvent&);
 
 };
 #endif // PHOTO_NODE_H
