@@ -94,6 +94,7 @@ PhotoNode::PhotoNode() :
   download_pictures_srv_ = nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
   get_picture_path_list_srv_ = nh.advertiseService("get_picture_path_list", &PhotoNode::getPicturePathList, this);
   reset_picture_path_list_srv_ = nh.advertiseService("reset_picture_path_list", &PhotoNode::resetPicturePathList, this);
+  delete_pictures_srv_ = nh.advertiseService("delete_pictures", &PhotoNode::deletePictures, this);
 
   path_pub_ = nh.advertise<std_msgs::String>("canon/eos/picture_path", 10);
 
@@ -227,6 +228,31 @@ bool PhotoNode::resetPicturePathList(std_srvs::Trigger::Request& req, std_srvs::
   return true;
 }
 
+bool PhotoNode::deletePictures(gphoto2_ros::DeletePictures::Request &req, gphoto2_ros::DeletePictures::Response &resp) {
+    std::vector<std::string>::iterator str_it;
+
+    std::string delimiter = "/", folder, filename;
+
+    ros::Time t_begin = ros::Time::now();
+    ros::Duration mean_time;
+    mean_time.fromSec(0);
+    //Pre treat all the data to get folder and file separated
+    for(str_it = req.camera_paths.begin();
+        str_it != req.camera_paths.end(); str_it++) {
+      size_t pos;
+
+      pos = str_it->find_last_of('/');
+      folder = str_it->substr(0, pos+1);
+      filename = str_it->substr(pos+1);
+
+      CameraFilePath path;
+      std::strcpy(path.name, filename.c_str());
+      std::strcpy(path.folder, folder.c_str());
+      camera_.delete_pictures(path);
+    }
+    resp.success = true;
+    return true;
+}
 
 // This service must be running in a different thread all the time to recover the paths of the pictures that are taken
 // it listen to the events coming from the camera on a loop, and save the path of the picture taken when the right events is coming

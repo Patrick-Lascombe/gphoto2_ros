@@ -21,6 +21,7 @@ add_service_files(FILES
   SetConfig.srv
   DownloadPictures.srv
   GetPicturePathList.srv
+  DeletePictures.srv
 )
 
 generate_messages(DEPENDENCIES
