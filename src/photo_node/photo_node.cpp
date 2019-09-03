@@ -159,7 +159,7 @@ bool PhotoNode::setFocus(std_srvs::Trigger::Request& req, std_srvs::Trigger::Res
   return true;
 }
 
-//Take instantaneously a picture and save it in the memory card (be sure that captureTarget = 1 in the camera config)
+//Take instantaneously a picture and save it in the memory card (be sure that capturetarget = 1 in the camera config)
 bool PhotoNode::triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
   std::cout << "Triggering capture service" << std::endl;
   photo_mutex_.lock();
@@ -181,37 +181,47 @@ bool PhotoNode::unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger:
 //Downaload all the pictures in the contained in the req.camera_paths field (complete paths are necessary)
 // into a folder precised in req.computer_path
 bool PhotoNode::downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
-  std::vector<std::string>::iterator str_it;
 
-  std::string delimiter = "/", folder, filename;
+  if (picture_path_list.size() != req.computer_paths.size()){
+    ROS_WARN("requested paths list do not match camera path list");
+    resp.success=false;
+    return  true;
+  }
+
+  std::string delimiter = "/", on_camera_folder, on_camera_filename, on_computer_folder, on_computer_filename;
 
   ros::Time t_begin = ros::Time::now();
   ros::Duration mean_time;
   mean_time.fromSec(0);
+  int c=0;
   //Pre treat all the data to get folder and file separated
-  for(str_it = req.camera_paths.begin();
-      str_it != req.camera_paths.end(); str_it++) {
-    size_t pos;
+  for(int i=0; i<picture_path_list.size() ; i++) {
+    size_t cam_pos, compu_pos;
 
-    pos = str_it->find_last_of('/');
-    folder = str_it->substr(0, pos+1);
-    filename = str_it->substr(pos+1);
+    cam_pos = picture_path_list[i].find_last_of('/');
+    on_camera_folder = picture_path_list[i].substr(0, cam_pos+1);
+    on_camera_filename = picture_path_list[i].substr(cam_pos+1);
+
+    compu_pos = req.computer_paths[i].find_last_of('/');
+    on_computer_folder = req.computer_paths[i].substr(0, compu_pos+1);
+    on_computer_filename = req.computer_paths[i].substr(compu_pos+1);
 
     CameraFilePath path;
-    std::strcpy(path.name, filename.c_str());
-    std::strcpy(path.folder, folder.c_str());
+    std::strcpy(path.name, on_camera_filename.c_str());
+    std::strcpy(path.folder, on_camera_folder.c_str());
     ros::Time t_lock = ros::Time::now();
 
     photo_mutex_.lock();
-    camera_.download_picture(path, req.computer_path);
+    camera_.download_picture(path, on_computer_folder, on_computer_filename);
     photo_mutex_.unlock();
 
     ros::Time t_unlock = ros::Time::now();
     mean_time += (t_unlock - t_lock);
+    c++;
   }
   ros::Time t_end = ros::Time::now();
-  std::cout << "Total duration : " << (t_end - t_begin).toSec() << " for " << req.camera_paths.size() << " pictutes" << std::endl;
-  std::cout << "Mean lock time per pic : " << mean_time.toSec()/req.camera_paths.size() << std::endl;
+  std::cout << "Total duration : " << (t_end - t_begin).toSec() << " for " << c << " pictures" << std::endl;
+  std::cout << "Mean lock time per pic : " << mean_time.toSec()/c << std::endl;
   resp.success = true;
   return true;
 }

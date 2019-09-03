@@ -691,6 +691,48 @@ bool photo_camera::download_picture(CameraFilePath path, std::string folder) {
     return true;
 }
 
+bool photo_camera::download_picture(CameraFilePath path, std::string folder, std::string on_computer_file_name) {
+    CameraFile *photo_file;
+//    const char *filename = strcat(path.folder, path.name);
+    int error_code;
+    const char *image_data;
+    unsigned long int size;
+    std::string path_to_save = folder + on_computer_file_name;
+    gp_file_new(&photo_file);
+
+
+    error_code = gp_camera_file_get(camera_, path.folder, path.name, GP_FILE_TYPE_NORMAL, photo_file, context_);
+    if (error_code < GP_OK) {
+        gp_file_free(photo_file);
+        photo_reporter::error( "gp_camera_file_get()" );
+        gp_context_error( context_, "Could not get file %s%s (error code %d)\n", path.folder, path.name, error_code );
+        return false;
+    }
+
+    error_code = gp_file_save(photo_file, path_to_save.c_str());
+    if (error_code < GP_OK) {
+        gp_file_free(photo_file);
+        photo_reporter::error( "gp_camera_file_get()" );
+        gp_context_error( context_, "Could not save file %s%s (error code %d)\n", path.folder, path.name, error_code );
+        return false;
+    }
+
+    // delete image from camera's memory
+    error_code = gp_camera_file_delete( camera_, path.folder, path.name, context_ );
+    if( error_code < GP_OK )
+    {
+      photo_reporter::error( "gp_camera_file_delete()" );
+      gp_context_error( context_, "Could delete file %s%s  (error code %d)\n", path.folder, path.name, error_code );
+      gp_file_free( photo_file );
+      return false;
+    }
+
+    return true;
+}
+
+
+
+
 bool photo_camera::download_picture(CameraFilePath path, photo_image *picture, std::string folder) {
 
     int fd, error_code;
