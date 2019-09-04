@@ -53,6 +53,8 @@ public:
 
   bool exit_loop_;
 
+  bool is_initialized;
+
   PhotoNode();
   ~PhotoNode();
   bool setConfig(gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp);
