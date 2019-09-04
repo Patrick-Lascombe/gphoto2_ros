@@ -98,7 +98,7 @@ PhotoNode::PhotoNode() :
         ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
         camera_list_.~photo_camera_list();
         camera_.~photo_camera();
-        ros::Duration(1.0).sleep();
+        ros::Duration(5.0).sleep();
         }
     }
     ROS_INFO("photo_node: Got camera, starting");
@@ -232,6 +232,7 @@ bool PhotoNode::downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gp
         std::strcpy(path.folder, on_camera_folder.c_str());
         ros::Time t_lock = ros::Time::now();
 
+        ROS_INFO_STREAM("Downloading " << path.folder << path.name << " on " << on_computer_folder << on_computer_filename);
         photo_mutex_.lock();
         camera_.download_picture(path, on_computer_folder, on_computer_filename);
         photo_mutex_.unlock();
