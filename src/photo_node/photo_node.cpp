@@ -95,10 +95,8 @@ PhotoNode::PhotoNode() :
             }
         }
         if(!is_initialized){
-        ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
-        camera_list_.~photo_camera_list();
-        camera_.~photo_camera();
-        ros::Duration(5.0).sleep();
+            ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
+            ros::Duration(5.0).sleep();
         }
     }
     ROS_INFO("photo_node: Got camera, starting");
