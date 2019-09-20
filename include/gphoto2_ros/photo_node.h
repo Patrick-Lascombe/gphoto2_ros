@@ -74,6 +74,6 @@ public:
   bool deletePictures(gphoto2_ros::DeletePictures::Request& req, gphoto2_ros::DeletePictures::Response& resp);
   void picturePathTimerCallback(const ros::TimerEvent&);
   void reinitCameraCallback(const ros::TimerEvent&);
-
+  std::string getDeviceNumber(int cam_number);
 };
 #endif // PHOTO_NODE_H

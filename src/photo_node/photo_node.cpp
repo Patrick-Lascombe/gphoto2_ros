@@ -347,6 +347,26 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
     }
 }
 
+std::string PhotoNode::getDeviceNumber(int camera_number) {
+    //If camera number starts at 0 : sed '3+cam_nb!d
+    std::string command = "gphoto2 --auto-detect | sed '" + std::to_string(3+camera_number) + "!d' | cut -d',' -f2 ";
+
+    char buffer[128];
+        std::string result = "";
+        FILE* pipe = popen(command.c_str(), "r");
+        if (!pipe) throw std::runtime_error("popen() failed!");
+        try {
+            while (fgets(buffer, sizeof buffer, pipe) != NULL) {
+                result += buffer;
+            }
+        } catch (...) {
+            pclose(pipe);
+            throw;
+        }
+        pclose(pipe);
+        return result;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "photo_node");
