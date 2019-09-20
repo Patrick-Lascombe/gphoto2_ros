@@ -48,9 +48,14 @@ PhotoNode::PhotoNode() :
     GPContext* private_context;
 
     //Get camera params
+    nh_priv.getParam("cam_nb", cam_nb_);
     nh_priv.getParam("usb", usb_);
     nh_priv.getParam("model", model_);
 
+    std::string usb_device_nb = this->getDeviceNumber(std::atoi(cam_nb_.c_str()));
+    std::cout << "Device nb : " << usb_device_nb << std::endl;
+
+    usb_ = usb_ + usb_device_nb;
     // initialize camera
     is_initialized=false;
 
