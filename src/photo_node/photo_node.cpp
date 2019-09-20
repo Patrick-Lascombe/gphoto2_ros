@@ -35,6 +35,7 @@
  *********************************************************************/
 
 #include <gphoto2_ros/photo_node.h>
+bool photo_reporter::is_connected_ = true;
 
 PhotoNode::PhotoNode() :
     camera_list_(),
@@ -46,11 +47,9 @@ PhotoNode::PhotoNode() :
     ros::NodeHandle nh("");
     GPContext* private_context;
 
-    std::string usb;
-    std::string model;
     //Get camera params
-    nh_priv.getParam("usb", usb);
-    nh_priv.getParam("model", model);
+    nh_priv.getParam("usb", usb_);
+    nh_priv.getParam("model", model_);
 
     // initialize camera
     is_initialized=false;
@@ -72,9 +71,10 @@ PhotoNode::PhotoNode() :
         }
 
         // open camera from camera list
-        if(model != "" && usb != "") {
-            if( camera_.photo_camera_open( &camera_list_, model, usb ) == false )
+        if(model_ != "" && usb_ != "") {
+            if( camera_.photo_camera_open( &camera_list_, model_, usb_ ) == false )
             {
+
                 ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
                 gp_context_unref( private_context );
                 //nh.shutdown();
@@ -119,6 +119,7 @@ PhotoNode::PhotoNode() :
 
     // ***** Loop to keep list of taken pictures updated
     picutre_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
+    reinit_camera_timer_ = nh.createTimer(ros::Duration(0.1), &PhotoNode::reinitCameraCallback, this);
 }
 
 
@@ -293,6 +294,56 @@ void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
         std_msgs::String msg;
         msg.data = path_to_file;
         path_pub_.publish(msg);
+    }
+}
+
+void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
+    bool is_init;
+    GPContext* private_context;
+    if(photo_reporter::is_connected_ == false) {
+        camera_list_=*(new photo_camera_list());
+        camera_=*(new photo_camera());
+        // create context
+        private_context = camera_.photo_camera_create_context();
+
+        // autodetect all cameras connected
+        if( camera_list_.autodetect( private_context ) == false )
+        {
+            ROS_FATAL( "photo_node: Autodetection of cameras failed." );
+            gp_context_unref( private_context );
+            //nh.shutdown();
+            //nh_priv.shutdown();
+            //return;
+        }
+
+        // open camera from camera list
+        if(model_ != "" && usb_ != "") {
+            if( camera_.photo_camera_open( &camera_list_, model_, usb_ ) == false )
+            {
+
+                ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
+                gp_context_unref( private_context );
+                //nh.shutdown();
+                //nh_priv.shutdown();
+                //return;
+            }else {
+                photo_reporter::is_connected_=true;
+            }
+        } else {
+            if( camera_.photo_camera_open( &camera_list_, 0 ) == false )
+            {
+                ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
+                gp_context_unref( private_context );
+                //nh.shutdown();
+                //return;
+            }else {
+                photo_reporter::is_connected_=true;
+            }
+        }
+        if(!photo_reporter::is_connected_){
+            ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
+            ros::Duration(5.0).sleep();
+        }
     }
 }
 

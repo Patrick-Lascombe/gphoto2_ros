@@ -22,6 +22,7 @@
 #include "gphoto2_ros/photo_camera_list.hpp"
 #include "gphoto2_ros/photo_camera.hpp"
 #include "gphoto2_ros/photo_image.hpp"
+#include "gphoto2_ros/photo_reporter.hpp"
 
 enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
 
@@ -47,6 +48,10 @@ public:
 
   ros::Publisher path_pub_;
   ros::Timer picutre_path_timer_;
+  ros::Timer reinit_camera_timer_;
+
+  std::string usb_;
+  std::string model_;
 
   std::vector<Task> tasks_;
   std::vector<std::string> picture_path_list;
@@ -68,6 +73,7 @@ public:
   bool resetPicturePathList(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
   bool deletePictures(gphoto2_ros::DeletePictures::Request& req, gphoto2_ros::DeletePictures::Response& resp);
   void picturePathTimerCallback(const ros::TimerEvent&);
+  void reinitCameraCallback(const ros::TimerEvent&);
 
 };
 #endif // PHOTO_NODE_H

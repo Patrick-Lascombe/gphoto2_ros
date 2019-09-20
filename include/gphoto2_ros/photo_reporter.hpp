@@ -42,6 +42,7 @@
 
 namespace photo_reporter
 {
+extern bool is_connected_;
 void contextError( GPContext* context, const char* error_string, void* data );
 void contextStatus( GPContext* context, const char* status_string, void* data );
 void error( const std::string& function_name );
