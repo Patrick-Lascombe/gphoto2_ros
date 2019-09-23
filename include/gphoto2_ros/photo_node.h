@@ -50,7 +50,7 @@ public:
   ros::Timer picutre_path_timer_;
   ros::Timer reinit_camera_timer_;
 
-  std::string cam_nb_;
+  int cam_nb_;
   std::string usb_;
   std::string model_;
 

@@ -1,0 +1,13 @@
+<launch>
+    <node pkg="gphoto2_ros" type="photo_node" name="photo_node_camera_top" output="screen" >
+        <param name="cam_nb" value="0"/>
+        <param name="usb" value="usb:003,"/>
+        <param name="model" value="USB PTP Class Camera"/>
+    </node>
+
+    <node pkg="gphoto2_ros" type="photo_node" name="photo_node_camera_bot" output="screen" >
+        <param name="cam_nb" value="1"/>
+        <param name="usb" value="usb:001,"/>
+        <param name="model" value="USB PTP Class Camera"/>
+    </node>
+</launch>

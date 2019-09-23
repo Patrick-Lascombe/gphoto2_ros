@@ -35,7 +35,7 @@
  *********************************************************************/
 
 #include <gphoto2_ros/photo_node.h>
-bool photo_reporter::is_connected_ = true;
+bool photo_reporter::is_connected_;
 
 PhotoNode::PhotoNode() :
     camera_list_(),
@@ -52,10 +52,6 @@ PhotoNode::PhotoNode() :
     nh_priv.getParam("usb", usb_);
     nh_priv.getParam("model", model_);
 
-    std::string usb_device_nb = this->getDeviceNumber(std::atoi(cam_nb_.c_str()));
-    std::cout << "Device nb : " << usb_device_nb << std::endl;
-
-    usb_ = usb_ + usb_device_nb;
     // initialize camera
     is_initialized=false;
 
@@ -75,6 +71,11 @@ PhotoNode::PhotoNode() :
             //return;
         }
 
+//        std::string usb_device_nb = this->getDeviceNumber(cam_nb_);
+//        std::cout << "For camera : " << cam_nb_ << " device_number is : " << usb_device_nb << std::endl;
+
+//        std::string final_usb_ = usb_ + usb_device_nb;
+
         // open camera from camera list
         if(model_ != "" && usb_ != "") {
             if( camera_.photo_camera_open( &camera_list_, model_, usb_ ) == false )
@@ -86,6 +87,7 @@ PhotoNode::PhotoNode() :
                 //nh_priv.shutdown();
                 //return;
             }else {
+                photo_reporter::is_connected_=true;
                 is_initialized=true;
             }
         } else {
@@ -96,6 +98,7 @@ PhotoNode::PhotoNode() :
                 //nh.shutdown();
                 //return;
             }else {
+                photo_reporter::is_connected_=true;
                 is_initialized=true;
             }
         }
@@ -124,7 +127,7 @@ PhotoNode::PhotoNode() :
 
     // ***** Loop to keep list of taken pictures updated
     picutre_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
-    reinit_camera_timer_ = nh.createTimer(ros::Duration(0.1), &PhotoNode::reinitCameraCallback, this);
+    reinit_camera_timer_ = nh.createTimer(ros::Duration(1), &PhotoNode::reinitCameraCallback, this);
 }
 
 
@@ -305,6 +308,7 @@ void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
 void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
     bool is_init;
     GPContext* private_context;
+
     if(photo_reporter::is_connected_ == false) {
         camera_list_=*(new photo_camera_list());
         camera_=*(new photo_camera());
@@ -333,6 +337,7 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
                 //return;
             }else {
                 photo_reporter::is_connected_=true;
+                ROS_INFO("Camera Reconnected with USB");
             }
         } else {
             if( camera_.photo_camera_open( &camera_list_, 0 ) == false )
@@ -343,11 +348,8 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
                 //return;
             }else {
                 photo_reporter::is_connected_=true;
+                ROS_INFO("Camera Reconnected without USB");
             }
-        }
-        if(!photo_reporter::is_connected_){
-            ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
-            ros::Duration(5.0).sleep();
         }
     }
 }
