@@ -57,11 +57,13 @@ add_dependencies(photo_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTE
 add_dependencies(test_photo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(gphoto2_ros
+  usb-1.0
   ${OpenCV_LIBRARIES}
 )  
 
 target_link_libraries(photo_node
   gphoto2_ros
+  usb-1.0
   ${catkin_LIBRARIES}
   ${gphoto2_LIBRARIES}
 )

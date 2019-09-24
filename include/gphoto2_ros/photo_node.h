@@ -24,6 +24,10 @@
 #include "gphoto2_ros/photo_image.hpp"
 #include "gphoto2_ros/photo_reporter.hpp"
 
+//for usb listing
+#include <stdio.h>
+#include <libusb-1.0/libusb.h>
+
 enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
 
 class PhotoNode
@@ -53,6 +57,8 @@ public:
   int cam_nb_;
   std::string usb_;
   std::string model_;
+  std::string bus_number_;
+  std::string port_number_;
 
   std::vector<Task> tasks_;
   std::vector<std::string> picture_path_list;
@@ -63,6 +69,7 @@ public:
 
   PhotoNode();
   ~PhotoNode();
+  std::string usb_from_bus_and_port_numbers(std::string bus_number, std::string port_number);
   bool setConfig(gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp);
   bool getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::GetConfig::Response& resp);
   bool capture( gphoto2_ros::Capture::Request& req, gphoto2_ros::Capture::Response& resp );
