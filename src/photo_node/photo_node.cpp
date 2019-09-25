@@ -45,7 +45,7 @@ PhotoNode::PhotoNode() :
 
   ros::NodeHandle nh_priv("~");
   ros::NodeHandle nh("");
-  GPContext* private_context;
+
 
   //Get camera params
   nh_priv.getParam("cam_nb", cam_nb_);
@@ -56,41 +56,9 @@ PhotoNode::PhotoNode() :
 
   ROS_INFO("Opening camera with model: %s, bus_number: %s, port number: %s", model_.c_str(), bus_number_.c_str(), port_number_.c_str());
 
-  // initialize camera
-  is_initialized=false;
-
-
-  while (!is_initialized && ros::ok()){
-    camera_list_=*(new photo_camera_list());
-    camera_=*(new photo_camera());
-    // create context
-    private_context = camera_.photo_camera_create_context();
-
-    // autodetect all cameras connected
-    if( camera_list_.autodetect( private_context ) == false )
-    {
-      ROS_FATAL( "photo_node: Autodetection of cameras failed." );
-      gp_context_unref( private_context );
-    }
-
-    // open camera from camera list
-    if(model_ != "" && bus_number_ != "" && port_number_ != "") {
-      if( camera_.photo_camera_open( &camera_list_, model_, usb_from_bus_and_port_numbers(bus_number_, port_number_) ) == false )
-      {
-        ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
-        gp_context_unref( private_context );
-      }else {
-        photo_reporter::is_connected_=true;
-        is_initialized=true;
-      }
-    } else {
-      ROS_FATAL( "A model, a bus and a port number should be provided to open the camera");
-      exit(0);
-    }
-    if(!is_initialized){
+  while (!camera_initialization() && ros::ok()){
       ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
       ros::Duration(5.0).sleep();
-    }
   }
   ROS_INFO("photo_node: Got camera, starting");
   ros::Duration(5.0).sleep();
@@ -121,6 +89,36 @@ PhotoNode::~PhotoNode()
   // shutdown camera
   exit_loop_ = true;
   camera_.photo_camera_close();
+}
+
+bool PhotoNode::camera_initialization(){
+  camera_list_=*(new photo_camera_list());
+  camera_=*(new photo_camera());
+  // create context
+  private_context = camera_.photo_camera_create_context();
+
+  // autodetect all cameras connected
+  if( camera_list_.autodetect( private_context ) == false )
+  {
+    ROS_FATAL( "photo_node: Autodetection of cameras failed." );
+    gp_context_unref( private_context );
+  }
+
+  // open camera from camera list
+  if(model_ != "" && bus_number_ != "" && port_number_ != "") {
+    if( camera_.photo_camera_open( &camera_list_, model_, usb_from_bus_and_port_numbers(bus_number_, port_number_) ) == false )
+    {
+      ROS_FATAL( "photo_node: Could not open camera");
+      gp_context_unref( private_context );
+    }else {
+      photo_reporter::is_connected_=true;
+      return true;
+    }
+  } else {
+    ROS_FATAL( "A model, a bus and a port number should be provided to open the camera");
+    exit(0);
+  }
+  return false;
 }
 
 std::string PhotoNode::usb_from_bus_and_port_numbers(std::string bus_number, std::string port_number){
@@ -344,72 +342,9 @@ void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
 }
 
 void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
-  bool is_init;
-  GPContext* private_context;
-
   if(photo_reporter::is_connected_ == false) {
-    camera_list_=*(new photo_camera_list());
-    camera_=*(new photo_camera());
-    // create context
-    private_context = camera_.photo_camera_create_context();
-
-    // autodetect all cameras connected
-    if( camera_list_.autodetect( private_context ) == false )
-    {
-      ROS_FATAL( "photo_node: Autodetection of cameras failed." );
-      gp_context_unref( private_context );
-      //nh.shutdown();
-      //nh_priv.shutdown();
-      //return;
-    }
-
-    // open camera from camera list
-    if(model_ != "" && usb_ != "") {
-      if( camera_.photo_camera_open( &camera_list_, model_, usb_ ) == false )
-      {
-
-        ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
-        gp_context_unref( private_context );
-        //nh.shutdown();
-        //nh_priv.shutdown();
-        //return;
-      }else {
-        photo_reporter::is_connected_=true;
-        ROS_INFO("Camera Reconnected with USB");
-      }
-    } else {
-      if( camera_.photo_camera_open( &camera_list_, 0 ) == false )
-      {
-        ROS_FATAL( "photo_node: Could not open camera %d.", 0 );
-        gp_context_unref( private_context );
-        //nh.shutdown();
-        //return;
-      }else {
-        photo_reporter::is_connected_=true;
-        ROS_INFO("Camera Reconnected without USB");
-      }
-    }
+    camera_initialization();
   }
-}
-
-std::string PhotoNode::getDeviceNumber(int camera_number) {
-  //If camera number starts at 0 : sed '3+cam_nb!d
-  std::string command = "gphoto2 --auto-detect | sed '" + std::to_string(3+camera_number) + "!d' | cut -d',' -f2 ";
-
-  char buffer[128];
-  std::string result = "";
-  FILE* pipe = popen(command.c_str(), "r");
-  if (!pipe) throw std::runtime_error("popen() failed!");
-  try {
-    while (fgets(buffer, sizeof buffer, pipe) != NULL) {
-      result += buffer;
-    }
-  } catch (...) {
-    pclose(pipe);
-    throw;
-  }
-  pclose(pipe);
-  return result;
 }
 
 int main(int argc, char **argv)

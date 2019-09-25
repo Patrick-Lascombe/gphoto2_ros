@@ -65,10 +65,11 @@ public:
 
   bool exit_loop_;
 
-  bool is_initialized;
+  GPContext* private_context;
 
   PhotoNode();
   ~PhotoNode();
+  bool camera_initialization();
   std::string usb_from_bus_and_port_numbers(std::string bus_number, std::string port_number);
   bool setConfig(gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp);
   bool getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::GetConfig::Response& resp);
@@ -82,6 +83,5 @@ public:
   bool deletePictures(gphoto2_ros::DeletePictures::Request& req, gphoto2_ros::DeletePictures::Response& resp);
   void picturePathTimerCallback(const ros::TimerEvent&);
   void reinitCameraCallback(const ros::TimerEvent&);
-  std::string getDeviceNumber(int cam_number);
 };
 #endif // PHOTO_NODE_H
