@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(gphoto2_ros)
 
-find_package(catkin REQUIRED COMPONENTS
+find_package(catkin REQUIRED genmsg actionlib_msgs COMPONENTS
   message_generation
   roscpp
   self_test
   sensor_msgs
   std_msgs
   std_srvs
+  actionlib_msgs
+  actionlib
 )
 
 find_package(OpenCV REQUIRED)
@@ -24,7 +26,14 @@ add_service_files(FILES
   DeletePictures.srv
 )
 
+add_action_files(DIRECTORY action
+  FILES
+  Trigger.action
+  SetFocus.action
+)
+
 generate_messages(DEPENDENCIES
+  actionlib_msgs
   std_msgs
   sensor_msgs
 )
@@ -32,7 +41,7 @@ generate_messages(DEPENDENCIES
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES gphoto2_ros
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs self_test
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs self_test actionlib_msgs
   DEPENDS OpenCV gphoto2
 )
 

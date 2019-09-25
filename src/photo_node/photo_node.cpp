@@ -37,19 +37,19 @@
 #include <gphoto2_ros/photo_node.h>
 bool photo_reporter::is_connected_;
 
-PhotoNode::PhotoNode() :
+PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_trigger) :
   camera_list_(),
   camera_(),
-  image_()
+  image_(),
+  as_set_focus(nh, name_action_set_focus, boost::bind(&PhotoNode::execute_set_focus_CB, this, _1), false),
+  as_trigger(nh, name_action_trigger, boost::bind(&PhotoNode::execute_trigger_CB, this, _1), false)
 {
 
   ros::NodeHandle nh_priv("~");
-  ros::NodeHandle nh("");
-
 
   //Get camera params
   nh_priv.getParam("cam_nb", cam_nb_);
-  nh_priv.getParam("usb", usb_);
+  nh_priv.getParam("vendor_id", vendor_id_);
   nh_priv.getParam("model", model_);
   nh_priv.getParam("bus_number", bus_number_);
   nh_priv.getParam("port_number", port_number_);
@@ -78,6 +78,9 @@ PhotoNode::PhotoNode() :
 
   path_pub_ = nh.advertise<std_msgs::String>("canon/eos/picture_path", 10);
 
+  as_set_focus.start();
+  as_trigger.start();
+
   // ***** Loop to keep list of taken pictures updated
   picutre_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
   reinit_camera_timer_ = nh.createTimer(ros::Duration(1), &PhotoNode::reinitCameraCallback, this);
@@ -105,23 +108,51 @@ bool PhotoNode::camera_initialization(){
   }
 
   // open camera from camera list
-  if(model_ != "" && bus_number_ != "" && port_number_ != "") {
-    if( camera_.photo_camera_open( &camera_list_, model_, usb_from_bus_and_port_numbers(bus_number_, port_number_) ) == false )
+  if(model_ != "" && bus_number_ != "" && port_number_ != "" && vendor_id_ != "") {
+    std::string usb=usb_from_vendor_bus_and_port_numbers(bus_number_, port_number_, vendor_id_);
+    if( usb=="" || !camera_.photo_camera_open( &camera_list_, model_,  usb) )
     {
-      ROS_FATAL( "photo_node: Could not open camera");
+      ROS_WARN( "photo_node: Could not open camera");
       gp_context_unref( private_context );
     }else {
       photo_reporter::is_connected_=true;
       return true;
     }
   } else {
-    ROS_FATAL( "A model, a bus and a port number should be provided to open the camera");
+    ROS_WARN( "A model, a vendor, a bus and a port number should be provided to open the camera");
     exit(0);
   }
   return false;
 }
 
-std::string PhotoNode::usb_from_bus_and_port_numbers(std::string bus_number, std::string port_number){
+void PhotoNode::execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &goal)
+{
+  photo_mutex_.lock();
+  bool error_code_focus_drive = camera_.photo_camera_set_config("autofocusdrive", "true");
+  ros::Duration(1.5).sleep();
+  bool error_code_cancel_focus = camera_.photo_camera_set_config("cancelautofocus", "true");
+  photo_mutex_.unlock();
+  if (error_code_focus_drive && error_code_cancel_focus){
+    as_set_focus.setSucceeded();
+  }else {
+    as_set_focus.setAborted();
+  }
+}
+
+void PhotoNode::execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal)
+{
+  std::cout << "Triggering capture action" << std::endl;
+  photo_mutex_.lock();
+  bool error_code_trigger = camera_.photo_camera_set_config("eosremoterelease", "5");
+  photo_mutex_.unlock();
+  if (error_code_trigger ){
+    as_trigger.setSucceeded();
+  }else {
+    as_trigger.setAborted();
+  }
+}
+
+std::string PhotoNode::usb_from_vendor_bus_and_port_numbers(std::string bus_number, std::string port_number, std::string id_vendor){
   std::string usb_to_load="";
 
   // ls usb
@@ -162,12 +193,17 @@ std::string PhotoNode::usb_from_bus_and_port_numbers(std::string bus_number, std
       }
     }
 
-    if (detected_bus==bus_number && detected_port==port_number){
+    std::stringstream stream_id_vendor;
+    stream_id_vendor << std::hex << desc.idVendor;
+    std::string detected_id_vendor= std::string(4 - stream_id_vendor.str().length(), '0') + stream_id_vendor.str();
+
+
+    if (detected_bus==bus_number && detected_port==port_number && detected_id_vendor==id_vendor){
       std::string bus_string = std::string(3 - detected_bus.length(), '0') + detected_bus;
       std::string device_string = std::string(3 - std::to_string(libusb_get_device_address(dev)).length(), '0') + std::to_string(libusb_get_device_address(dev));
       usb_to_load=usb_to_load + "usb:" + bus_string + "," + device_string;
 
-      ROS_INFO("usb_to_load: %s, corresponding to bus: %s and port: %s", usb_to_load.c_str(), detected_bus.c_str(), detected_port.c_str());
+      ROS_INFO("usb_to_load: %s, corresponding to bus: %s, port: %s and vendor: %s", usb_to_load.c_str(), detected_bus.c_str(), detected_id_vendor.c_str(), detected_port.c_str());
     }
   }
   return  usb_to_load;
@@ -351,7 +387,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "photo_node");
   ros::AsyncSpinner spinner(2);
-  PhotoNode a;
+  PhotoNode a("set_focus_action", "trigger_action");
   spinner.start();
   ros::waitForShutdown();
   a.~PhotoNode();

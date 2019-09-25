@@ -18,6 +18,11 @@
 #include <gphoto2_ros/DeletePictures.h>
 #include <std_srvs/Trigger.h>
 
+//ROS action
+#include <actionlib/server/simple_action_server.h>
+#include <gphoto2_ros/SetFocusAction.h>
+#include <gphoto2_ros/TriggerAction.h>
+
 // photo library headers
 #include "gphoto2_ros/photo_camera_list.hpp"
 #include "gphoto2_ros/photo_camera.hpp"
@@ -32,6 +37,11 @@ enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
 
 class PhotoNode
 {
+protected:
+  ros::NodeHandle nh;
+
+  actionlib::SimpleActionServer<gphoto2_ros::SetFocusAction> as_set_focus;
+  actionlib::SimpleActionServer<gphoto2_ros::TriggerAction> as_trigger;
 public:
   photo_camera_list camera_list_;
   photo_camera camera_;
@@ -55,7 +65,7 @@ public:
   ros::Timer reinit_camera_timer_;
 
   int cam_nb_;
-  std::string usb_;
+  std::string vendor_id_;
   std::string model_;
   std::string bus_number_;
   std::string port_number_;
@@ -67,10 +77,12 @@ public:
 
   GPContext* private_context;
 
-  PhotoNode();
+  PhotoNode(std::string name_action_set_focus, std::string name_action_trigger);
   ~PhotoNode();
+  void execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &goal);
+  void execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal);
   bool camera_initialization();
-  std::string usb_from_bus_and_port_numbers(std::string bus_number, std::string port_number);
+  std::string usb_from_vendor_bus_and_port_numbers(std::string bus_number, std::string port_number, std::string id_vendor);
   bool setConfig(gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp);
   bool getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::GetConfig::Response& resp);
   bool capture( gphoto2_ros::Capture::Request& req, gphoto2_ros::Capture::Response& resp );
