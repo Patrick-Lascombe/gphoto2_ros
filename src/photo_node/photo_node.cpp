@@ -47,14 +47,17 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
 
   ros::NodeHandle nh_priv("~");
 
-  //Get camera params
-  nh_priv.getParam("cam_nb", cam_nb_);
+  //Camera filters
   nh_priv.getParam("vendor_id", vendor_id_);
   nh_priv.getParam("model", model_);
   nh_priv.getParam("bus_number", bus_number_);
   nh_priv.getParam("port_number", port_number_);
+  //Camera configs
+  nh_priv.getParam("shutter_speed_mode", shutter_speed_mode_);
+  nh_priv.getParam("aperture_mode", aperture_mode_);
+  nh_priv.getParam("iso_mode", iso_mode_);
 
-  ROS_INFO("Opening camera with model: %s, bus_number: %s, port number: %s", model_.c_str(), bus_number_.c_str(), port_number_.c_str());
+  ROS_INFO("Opening camera with model: %s, bus_number: %s, port number: %s, vendor_id: %s", model_.c_str(), bus_number_.c_str(), port_number_.c_str(), vendor_id_.c_str());
 
   while (!camera_initialization() && ros::ok()){
       ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
@@ -62,6 +65,8 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   }
   ROS_INFO("photo_node: Got camera, starting");
   ros::Duration(5.0).sleep();
+  ROS_INFO("photo_node: configuring");
+  camera_configs(shutter_speed_mode_, aperture_mode_, iso_mode_);
 
 
   // ***** Start Services *****
@@ -123,6 +128,20 @@ bool PhotoNode::camera_initialization(){
     exit(0);
   }
   return false;
+}
+
+void PhotoNode::camera_configs(std::string aperture_mode, std::string shutter_speed_mode, std::string iso_mode){
+  photo_mutex_.lock();
+  ROS_INFO("Settings aperture/shutterspeed/iso: %s/%s/%s", aperture_mode.c_str(), shutter_speed_mode.c_str(), iso_mode.c_str());
+  camera_.photo_camera_set_config( "aperture", aperture_mode );
+  camera_.photo_camera_set_config( "shutterspeed", shutter_speed_mode );
+  camera_.photo_camera_set_config( "iso", "1" );
+  camera_.photo_camera_set_config( "iso", iso_mode );
+
+  //Ensure record on SD and clock is sync
+  camera_.photo_camera_set_config( "capturetarget", "1" );
+  camera_.photo_camera_set_config( "syncdatetimeutc", "0" );
+  photo_mutex_.unlock();
 }
 
 void PhotoNode::execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &goal)
@@ -203,7 +222,7 @@ std::string PhotoNode::usb_from_vendor_bus_and_port_numbers(std::string bus_numb
       std::string device_string = std::string(3 - std::to_string(libusb_get_device_address(dev)).length(), '0') + std::to_string(libusb_get_device_address(dev));
       usb_to_load=usb_to_load + "usb:" + bus_string + "," + device_string;
 
-      ROS_INFO("usb_to_load: %s, corresponding to bus: %s, port: %s and vendor: %s", usb_to_load.c_str(), detected_bus.c_str(), detected_id_vendor.c_str(), detected_port.c_str());
+      ROS_INFO("usb_to_load: %s, corresponding to bus: %s, port: %s and vendor: %s", usb_to_load.c_str(), detected_bus.c_str(),  detected_port.c_str(), detected_id_vendor.c_str());
     }
   }
   return  usb_to_load;

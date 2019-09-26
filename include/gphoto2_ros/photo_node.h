@@ -64,11 +64,14 @@ public:
   ros::Timer picutre_path_timer_;
   ros::Timer reinit_camera_timer_;
 
-  int cam_nb_;
   std::string vendor_id_;
   std::string model_;
   std::string bus_number_;
   std::string port_number_;
+
+  std::string shutter_speed_mode_;
+  std::string aperture_mode_;
+  std::string iso_mode_;
 
   std::vector<Task> tasks_;
   std::vector<std::string> picture_path_list;
@@ -79,6 +82,7 @@ public:
 
   PhotoNode(std::string name_action_set_focus, std::string name_action_trigger);
   ~PhotoNode();
+  void camera_configs(std::string aperture_mode, std::string shutter_speed_mode, std::string iso_mode);
   void execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &goal);
   void execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal);
   bool camera_initialization();
