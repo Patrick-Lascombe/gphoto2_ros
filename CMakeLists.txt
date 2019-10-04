@@ -60,9 +60,11 @@ add_library(gphoto2_ros
 )
 
 add_executable(photo_node src/photo_node/photo_node.cpp)
+add_executable(photo_node_sim src/photo_node/photo_node_sim.cpp)
 add_executable(test_photo src/test_photo/test_photo.cpp)
 
 add_dependencies(photo_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(photo_node_sim ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(test_photo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(gphoto2_ros
@@ -71,6 +73,13 @@ target_link_libraries(gphoto2_ros
 )  
 
 target_link_libraries(photo_node
+  gphoto2_ros
+  usb-1.0
+  ${catkin_LIBRARIES}
+  ${gphoto2_LIBRARIES}
+)
+
+target_link_libraries(photo_node_sim
   gphoto2_ros
   usb-1.0
   ${catkin_LIBRARIES}
