@@ -42,12 +42,14 @@ void photo_reporter::contextError( GPContext *context, const char *error_string,
 {
   (void)context;
   (void)data;
-//  Disable printing of error_string because too fast and too poluting
-//  std::cerr << "\nphoto_reporter: Context error \n" << error_string << std::endl;
+
   std::string str_to_test = "PTP No Device";
-  if(std::string(error_string).find(str_to_test)) {
-//      std::cout << "Device lost" << std::endl;
-      //photo_reporter::is_connected_ = false;
+  if(std::string(error_string).find(str_to_test) != std::string::npos ) {
+      std::cout << "Device lost" << std::endl;
+      photo_reporter::is_connected_ = false;
+  }
+  else {
+      std::cerr << "\nphoto_reporter: Context error \n" << error_string << std::endl;
   }
 }
 

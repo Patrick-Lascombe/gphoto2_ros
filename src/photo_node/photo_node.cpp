@@ -399,6 +399,10 @@ void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
 void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
   if(photo_reporter::is_connected_ == false) {
     camera_initialization();
+    ROS_INFO("photo_node: Got camera, starting");
+    ros::Duration(5.0).sleep();
+    ROS_INFO("photo_node: configuring");
+    camera_configs(shutter_speed_mode_, aperture_mode_, iso_mode_);
   }
 }
 
