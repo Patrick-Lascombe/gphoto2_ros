@@ -35,7 +35,7 @@
  *********************************************************************/
 
 #include <gphoto2_ros/photo_node.h>
-bool photo_reporter::is_connected_;
+bool photo_reporter::is_connected_ = true;
 
 PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_trigger) :
   camera_list_(),
@@ -81,6 +81,8 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   reset_picture_path_list_srv_ = nh.advertiseService("reset_picture_path_list", &PhotoNode::resetPicturePathList, this);
   delete_pictures_srv_ = nh.advertiseService("delete_pictures", &PhotoNode::deletePictures, this);
 
+  get_config_client_ = nh.serviceClient<gphoto2_ros::GetConfig>("get_config");
+
   path_pub_ = nh.advertise<std_msgs::String>("canon/eos/picture_path", 10);
 
   as_set_focus.start();
@@ -88,7 +90,7 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
 
   // ***** Loop to keep list of taken pictures updated
   picutre_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
-  reinit_camera_timer_ = nh.createTimer(ros::Duration(1), &PhotoNode::reinitCameraCallback, this);
+  reinit_camera_timer_ = nh.createTimer(ros::Duration(10), &PhotoNode::reinitCameraCallback, this);
 }
 
 
@@ -397,6 +399,58 @@ void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
 }
 
 void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
+    // ls usb
+    if(photo_reporter::is_connected_) {
+        libusb_device **devs;
+        int r;
+        ssize_t cnt;
+
+        r = libusb_init(NULL);
+        cnt = libusb_get_device_list(NULL, &devs);
+        if (cnt < 0){
+          libusb_exit(NULL);
+        }
+        bool usb_device_found=false;
+        libusb_device *dev;
+        int i = 0, j = 0;
+        uint8_t path[8];
+
+        while ((dev = devs[i++]) != NULL) {
+          struct libusb_device_descriptor desc;
+          int r = libusb_get_device_descriptor(dev, &desc);
+          if (r < 0) {
+            fprintf(stderr, "failed to get device descriptor");
+          }
+
+          std::string detected_bus=std::to_string(libusb_get_bus_number(dev));
+
+          r = libusb_get_port_numbers(dev, path, sizeof(path));
+
+          std::string detected_port;
+          if (r > 0) {
+            detected_port=std::to_string(path[0]);
+            for (j = 1; j < r; j++){
+              detected_port=detected_port + "." + std::to_string(path[j]);
+            }
+          }
+
+          std::stringstream stream_id_vendor;
+          stream_id_vendor << std::hex << desc.idVendor;
+          std::string detected_id_vendor= std::string(4 - stream_id_vendor.str().length(), '0') + stream_id_vendor.str();
+
+
+          if ((detected_bus==bus_number_) && (detected_port==port_number_) && (detected_id_vendor==vendor_id_)){
+            usb_device_found=true;
+            ROS_INFO("Usb device found");
+          }
+        }
+        if(!usb_device_found) {
+            ROS_INFO("No usb device found, disconnected ?");
+            photo_reporter::is_connected_=false;
+        }
+
+    }
+
   if(photo_reporter::is_connected_ == false) {
     if(camera_initialization()) {
         ROS_INFO("photo_node: Got camera, starting");
@@ -410,7 +464,7 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "photo_node");
-  ros::AsyncSpinner spinner(2);
+  ros::AsyncSpinner spinner(4);
   PhotoNode a("set_focus_action", "trigger_action");
   spinner.start();
   ros::waitForShutdown();
