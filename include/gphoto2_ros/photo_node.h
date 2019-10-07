@@ -79,6 +79,7 @@ public:
   std::vector<std::string> picture_path_list;
 
   bool exit_loop_;
+  bool is_camera_connected_;
 
   GPContext* private_context;
 

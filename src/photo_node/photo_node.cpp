@@ -35,7 +35,6 @@
  *********************************************************************/
 
 #include <gphoto2_ros/photo_node.h>
-bool photo_reporter::is_connected_ = true;
 
 PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_trigger) :
   camera_list_(),
@@ -91,6 +90,7 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   // ***** Loop to keep list of taken pictures updated
   picutre_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
   reinit_camera_timer_ = nh.createTimer(ros::Duration(10), &PhotoNode::reinitCameraCallback, this);
+
 }
 
 
@@ -122,7 +122,7 @@ bool PhotoNode::camera_initialization(){
       ROS_WARN( "photo_node: Could not open camera");
       gp_context_unref( private_context );
     }else {
-      photo_reporter::is_connected_=true;
+      is_camera_connected_=true;
       return true;
     }
   } else {
@@ -400,7 +400,7 @@ void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
 
 void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
     // ls usb
-    if(photo_reporter::is_connected_) {
+    if(is_camera_connected_) {
         libusb_device **devs;
         int r;
         ssize_t cnt;
@@ -446,12 +446,12 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
         }
         if(!usb_device_found) {
             ROS_INFO("No usb device found, disconnected ?");
-            photo_reporter::is_connected_=false;
+            is_camera_connected_=false;
         }
 
     }
 
-  if(photo_reporter::is_connected_ == false) {
+  if(is_camera_connected_ == false) {
     if(camera_initialization()) {
         ROS_INFO("photo_node: Got camera, starting");
         ros::Duration(5.0).sleep();
