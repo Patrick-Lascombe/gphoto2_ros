@@ -202,8 +202,12 @@ public:
         photo_mutex_.lock();
         // Rewrite picture download
         std::string path_camera, path_computer;
-        std::experimental::filesystem::copy(strcat(path.folder, path.name), on_computer_folder + on_computer_filename);
-//        camera_.download_picture(path, on_computer_folder, on_computer_filename);
+        if(!std::experimental::filesystem::exists(on_computer_folder)) {
+          std::experimental::filesystem::copy(strcat(path.folder, path.name), on_computer_folder + on_computer_filename);
+        } else {
+          ROS_ERROR("The path to the file you're trying to save already exist");
+        }
+        //        camera_.download_picture(path, on_computer_folder, on_computer_filename);
         photo_mutex_.unlock();
 
         ros::Time t_unlock = ros::Time::now();

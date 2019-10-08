@@ -33,6 +33,8 @@
 #include <stdio.h>
 #include <libusb-1.0/libusb.h>
 
+#include <experimental/filesystem>
+
 enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
 
 class PhotoNode

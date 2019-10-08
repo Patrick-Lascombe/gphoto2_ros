@@ -332,9 +332,13 @@ bool PhotoNode::downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gp
     ros::Time t_lock = ros::Time::now();
 
     ROS_INFO_STREAM("Downloading " << path.folder << path.name << " on " << on_computer_folder << on_computer_filename);
-    photo_mutex_.lock();
-    camera_.download_picture(path, on_computer_folder, on_computer_filename);
-    photo_mutex_.unlock();
+    if(!std::experimental::filesystem::exists(req.computer_paths[i])) {
+      photo_mutex_.lock();
+      camera_.download_picture(path, on_computer_folder, on_computer_filename);
+      photo_mutex_.unlock();
+    } else {
+      ROS_ERROR("The file already exist, picture won't be saved");
+    }
 
     ros::Time t_unlock = ros::Time::now();
     mean_time += (t_unlock - t_lock);
