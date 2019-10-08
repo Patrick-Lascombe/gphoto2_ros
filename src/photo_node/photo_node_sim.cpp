@@ -35,11 +35,6 @@
 
 enum CameraState {locked, unlocked};
 enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
-struct RobotConfigs {
-    std::string shutter_speed_mode_;
-    std::string aperture_mode_;
-    std::string iso_mode_;
-};
 
 class PhotoNodeSim
 {
@@ -116,6 +111,10 @@ public:
 
       cs_ = unlocked;
 
+  }
+
+  void camera_configs(std::string aperture_mode, std::string shutter_speed_mode, std::string iso_mode){
+    ROS_INFO("Settings aperture/shutterspeed/iso: %s/%s/%s", aperture_mode.c_str(), shutter_speed_mode.c_str(), iso_mode.c_str());
   }
 
   bool setConfig(gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp) {
@@ -228,7 +227,13 @@ public:
   }
 
   bool deletePictures(gphoto2_ros::DeletePictures::Request& req, gphoto2_ros::DeletePictures::Response& resp) {
+      std::vector<std::string>::iterator str_it;
 
+      std::string delimiter = "/", folder, filename;
+      for(str_it = req.camera_paths.begin();
+          str_it != req.camera_paths.end(); str_it++) {
+          std::experimental::filesystem::remove(*str_it);
+      }
   }
 
   void execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &goal) {
