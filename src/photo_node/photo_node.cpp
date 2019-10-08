@@ -445,11 +445,11 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
 
           if ((detected_bus==bus_number_) && (detected_port==port_number_) && (detected_id_vendor==vendor_id_)){
             usb_device_found=true;
-            ROS_INFO("Usb device found");
+//            ROS_INFO("Usb device found");
           }
         }
         if(!usb_device_found) {
-            ROS_INFO("No usb device found, disconnected ?");
+            ROS_ERROR("No usb device found, disconnect camera from node");
             is_camera_connected_=false;
         }
 
