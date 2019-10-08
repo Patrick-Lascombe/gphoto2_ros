@@ -141,6 +141,7 @@ public:
   bool triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
     // Saving the pictures in a specific folder
 
+    cs_ = locked;
     std::vector<char> buffer;
     std::vector<char> *binaryStr;
 
@@ -152,7 +153,6 @@ public:
     fclose(outfile);
 
     ROS_INFO("Saving pictures : %s", path.c_str());
-    cs_ = locked;
 
     std_msgs::String msg;
     msg.data = path;
@@ -164,6 +164,7 @@ public:
   }
 
   bool unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
+    ROS_INFO("Camera Unlocked");
     cs_ = unlocked;
   }
 
@@ -217,7 +218,8 @@ public:
   }
 
   bool getPicturePathList(gphoto2_ros::GetPicturePathList::Request& req, gphoto2_ros::GetPicturePathList::Response& resp) {
-
+    resp.picture_path_list=picture_path_list;
+    return true;
   }
 
   bool resetPicturePathList(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
@@ -237,11 +239,36 @@ public:
   }
 
   void execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &goal) {
-
+    if(cs_ == unlocked) {
+        ROS_INFO("Setting the focus");
+        as_set_focus.setAborted();
+    } else {
+        ROS_INFO("Couldn't set the focus, camera is not unlocked");
+        as_set_focus.setSucceeded();
+    }
   }
 
   void execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal) {
+    ROS_INFO( "Triggering capture action" );
 
+    cs_ = locked;
+    std::vector<char> buffer;
+    std::vector<char> *binaryStr;
+
+    ros::Time t = ros::Time::now();
+    std::string t_str = boost::lexical_cast<std::string>(t.toNSec());
+    std::string path = "/tmp/IMG_" + t_str + ".jpeg";
+    FILE* outfile = fopen(path.c_str(), "wb");
+//    fwrite(binaryStr , 1 , sizeof(binaryStr) ,outfile );
+    fclose(outfile);
+
+    ROS_INFO("Saving pictures : %s", path.c_str());
+
+    std_msgs::String msg;
+    msg.data = path;
+    picture_path_list.push_back(path);
+    path_pub_.publish(msg);
+    as_trigger.setSucceeded();
   }
 
   void picturePathTimerCallback(const ros::TimerEvent&) {
