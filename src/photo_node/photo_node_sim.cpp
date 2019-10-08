@@ -30,6 +30,9 @@
 //for usb listing
 #include <stdio.h>
 #include <libusb-1.0/libusb.h>
+
+#include <experimental/filesystem>
+
 enum CameraState {locked, unlocked};
 enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
 struct RobotConfigs {
@@ -58,6 +61,7 @@ public:
   ros::ServiceServer reset_picture_path_list_srv_;
   ros::ServiceServer delete_pictures_srv_;
 
+  boost::mutex photo_mutex_ ;
   ros::Publisher path_pub_;
   ros::Timer picture_path_timer_;
 
@@ -155,6 +159,7 @@ public:
     msg.data = path;
     path_pub_.publish(msg);
 
+    resp.success = true;
     return true;
 
   }
@@ -164,7 +169,52 @@ public:
   }
 
   bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
+      if (picture_path_list.size() != req.computer_paths.size()){
+        ROS_WARN("requested paths list do not match camera path list: picture_path_list size: %d : computer_paths_size: %d", picture_path_list.size(), req.computer_paths.size());
+        resp.success=false;
+        return  true;
+      }
 
+      std::string delimiter = "/", on_camera_folder, on_camera_filename, on_computer_folder, on_computer_filename;
+
+      ros::Time t_begin = ros::Time::now();
+      ros::Duration mean_time;
+      mean_time.fromSec(0);
+      int c=0;
+      //Pre treat all the data to get folder and file separated
+      for(int i=0; i<picture_path_list.size() ; i++) {
+        size_t cam_pos, compu_pos;
+
+        cam_pos = picture_path_list[i].find_last_of('/');
+        on_camera_folder = picture_path_list[i].substr(0, cam_pos+1);
+        on_camera_filename = picture_path_list[i].substr(cam_pos+1);
+
+        compu_pos = req.computer_paths[i].find_last_of('/');
+        on_computer_folder = req.computer_paths[i].substr(0, compu_pos+1);
+        on_computer_filename = req.computer_paths[i].substr(compu_pos+1);
+
+        CameraFilePath path;
+        std::strcpy(path.name, on_camera_filename.c_str());
+        std::strcpy(path.folder, on_camera_folder.c_str());
+        ros::Time t_lock = ros::Time::now();
+
+        ROS_INFO_STREAM("Downloading " << path.folder << path.name << " on " << on_computer_folder << on_computer_filename);
+        photo_mutex_.lock();
+        // Rewrite picture download
+        std::string path_camera, path_computer;
+        std::experimental::filesystem::copy(strcat(path.folder, path.name), on_computer_folder + on_computer_filename);
+//        camera_.download_picture(path, on_computer_folder, on_computer_filename);
+        photo_mutex_.unlock();
+
+        ros::Time t_unlock = ros::Time::now();
+        mean_time += (t_unlock - t_lock);
+        c++;
+      }
+      ros::Time t_end = ros::Time::now();
+      std::cout << "Total duration : " << (t_end - t_begin).toSec() << " for " << c << " pictures" << std::endl;
+      std::cout << "Mean lock time per pic : " << mean_time.toSec()/c << std::endl;
+      resp.success = true;
+      return true;
   }
 
   bool getPicturePathList(gphoto2_ros::GetPicturePathList::Request& req, gphoto2_ros::GetPicturePathList::Response& resp) {
@@ -172,7 +222,9 @@ public:
   }
 
   bool resetPicturePathList(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
-
+      picture_path_list.clear();
+      resp.success = true;
+      return true;
   }
 
   bool deletePictures(gphoto2_ros::DeletePictures::Request& req, gphoto2_ros::DeletePictures::Response& resp) {
