@@ -65,7 +65,7 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   ROS_INFO("photo_node: Got camera, starting");
   ros::Duration(5.0).sleep();
   ROS_INFO("photo_node: configuring");
-  camera_configs(shutter_speed_mode_, aperture_mode_, iso_mode_);
+  camera_configs(aperture_mode_,shutter_speed_mode_, iso_mode_);
 
 
   // ***** Start Services *****
