@@ -79,7 +79,7 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   get_picture_path_list_srv_ = nh.advertiseService("get_picture_path_list", &PhotoNode::getPicturePathList, this);
   reset_picture_path_list_srv_ = nh.advertiseService("reset_picture_path_list", &PhotoNode::resetPicturePathList, this);
   delete_pictures_srv_ = nh.advertiseService("delete_pictures", &PhotoNode::deletePictures, this);
-
+  is_camera_ready_ = nh.advertiseService("is_camera_ready", &PhotoNode::isCameraReady, this);
   get_config_client_ = nh.serviceClient<gphoto2_ros::GetConfig>("get_config");
 
   path_pub_ = nh.advertise<std_msgs::String>("canon/eos/picture_path", 10);
@@ -360,6 +360,12 @@ bool PhotoNode::resetPicturePathList(std_srvs::Trigger::Request& req, std_srvs::
 {
   picture_path_list.clear();
   resp.success = true;
+  return true;
+}
+
+bool PhotoNode::isCameraReady(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
+{
+  resp.success = is_camera_connected_;
   return true;
 }
 

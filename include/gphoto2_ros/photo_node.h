@@ -61,6 +61,7 @@ public:
   ros::ServiceServer get_picture_path_list_srv_;
   ros::ServiceServer reset_picture_path_list_srv_;
   ros::ServiceServer delete_pictures_srv_;
+  ros::ServiceServer is_camera_ready_;
 
   ros::ServiceClient get_config_client_;
 
@@ -101,6 +102,7 @@ public:
   bool downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp);
   bool getPicturePathList(gphoto2_ros::GetPicturePathList::Request& req, gphoto2_ros::GetPicturePathList::Response& resp);
   bool resetPicturePathList(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
+  bool isCameraReady(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
   bool deletePictures(gphoto2_ros::DeletePictures::Request& req, gphoto2_ros::DeletePictures::Response& resp);
   void picturePathTimerCallback(const ros::TimerEvent&);
   void reinitCameraCallback(const ros::TimerEvent&);
