@@ -136,10 +136,10 @@ bool PhotoNode::camera_initialization(){
 void PhotoNode::camera_configs(std::string aperture_mode, std::string shutter_speed_mode, std::string iso_mode){
   photo_mutex_.lock();
   ROS_INFO("Settings aperture/shutterspeed/iso: %s/%s/%s", aperture_mode.c_str(), shutter_speed_mode.c_str(), iso_mode.c_str());
-  camera_.photo_camera_set_config( "aperture", aperture_mode );
-  camera_.photo_camera_set_config( "shutterspeed", shutter_speed_mode );
+  camera_.photo_camera_set_config( "aperture", aperture_mode_ );
+  camera_.photo_camera_set_config( "shutterspeed", shutter_speed_mode_ );
   camera_.photo_camera_set_config( "iso", "1" );
-  camera_.photo_camera_set_config( "iso", iso_mode );
+  camera_.photo_camera_set_config( "iso", iso_mode_ );
 
   //Ensure record on SD and clock is sync
   camera_.photo_camera_set_config( "capturetarget", "1" );
@@ -458,7 +458,7 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
         }
         if(!usb_device_found) {
             ROS_ERROR("No usb device found, disconnect camera from node");
-            camera_.photo_camera_close();
+//            camera_.photo_camera_close();
             is_camera_connected_=false;
             is_camera_configured_=false;
         }
@@ -472,8 +472,7 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
         ROS_INFO_STREAM("is camera configured : " << is_camera_configured_ );
         ros::Duration(5.0).sleep();
         ROS_INFO("photo_node: configuring");
-//        camera_configs(shutter_speed_mode_, aperture_mode_, iso_mode_);
-        is_camera_configured_=true;
+        camera_configs(shutter_speed_mode_, aperture_mode_, iso_mode_);
         ROS_INFO("photo_node: configured");
     }
   }
