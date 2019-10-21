@@ -95,6 +95,7 @@ public:
   bool photo_camera_capture_to_file( const std::string& filename );
 
   std::string get_picture_path(boost::mutex *photo_mutex_);
+  std::string get_port_info();
 
   bool download_picture(CameraFilePath path, std::string folder);
   bool download_picture(CameraFilePath path, std::string folder, std::string file_name);

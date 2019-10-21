@@ -117,7 +117,8 @@ bool PhotoNode::camera_initialization(){
   // open camera from camera list
   if(model_ != "" && bus_number_ != "" && port_number_ != "" && vendor_id_ != "") {
     std::string usb=usb_from_vendor_bus_and_port_numbers(bus_number_, port_number_, vendor_id_);
-    if( usb=="" || !camera_.photo_camera_open( &camera_list_, model_,  usb) )
+    std::string value = compareUSB(usb);
+    if( usb=="" || !camera_.photo_camera_open( &camera_list_, model_,  value) )
     {
       ROS_WARN( "photo_node: Could not open camera");
       gp_context_unref( private_context );
@@ -131,6 +132,21 @@ bool PhotoNode::camera_initialization(){
     exit(0);
   }
   return false;
+}
+
+std::string PhotoNode::compareUSB(std::string libusb_detected) {
+    camera_list_.autodetect(private_context);
+    CameraList *cl = camera_list_.getCameraList();
+    std::cout << "Value from libusb : a" << libusb_detected << "a" << std::endl;
+    for(int i = 0; i < gp_list_count(cl); i++) {
+        const char *value;
+        gp_list_get_value(cl, i, &value);
+        std::cout << "Value from camera list : a" << value << "a" << std::endl;
+        if(libusb_detected == value) {
+            std::cout << "Correct usb found returning it" << std::endl;
+           return value;
+        }
+    }
 }
 
 void PhotoNode::camera_configs(std::string aperture_mode, std::string shutter_speed_mode, std::string iso_mode){
@@ -166,7 +182,14 @@ void PhotoNode::execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal)
 {
   std::cout << "Triggering capture action" << std::endl;
   photo_mutex_.lock();
+  std::string port_info = camera_.get_port_info();
+  std::cout << "Port info before pictures : " << port_info << std::endl;
+
   bool error_code_trigger = camera_.photo_camera_set_config("eosremoterelease", "5");
+
+  port_info = camera_.get_port_info();
+  std::cout << "Port info after pictures : " << port_info << std::endl;
+
   photo_mutex_.unlock();
   if (error_code_trigger ){
     as_trigger.setSucceeded();
@@ -226,7 +249,7 @@ std::string PhotoNode::usb_from_vendor_bus_and_port_numbers(std::string bus_numb
       std::string device_string = std::string(3 - std::to_string(libusb_get_device_address(dev)).length(), '0') + std::to_string(libusb_get_device_address(dev));
       usb_to_load=usb_to_load + "usb:" + bus_string + "," + device_string;
 
-      ROS_INFO("usb_to_load: %s, corresponding to bus: %s, port: %s and vendor: %s", usb_to_load.c_str(), detected_bus.c_str(),  detected_port.c_str(), detected_id_vendor.c_str());
+      ROS_INFO("usb_to_load: %s, corresponding to bus: %s, port: %s and vendor: %s and device number : %s", usb_to_load.c_str(), detected_bus.c_str(),  detected_port.c_str(), detected_id_vendor.c_str(), device_string.c_str());
     }
   }
   return  usb_to_load;
@@ -453,7 +476,6 @@ void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
 
           if ((detected_bus==bus_number_) && (detected_port==port_number_) && (detected_id_vendor==vendor_id_)){
             usb_device_found=true;
-//            ROS_INFO("Usb device found");
           }
         }
         if(!usb_device_found) {

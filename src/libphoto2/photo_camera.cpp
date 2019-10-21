@@ -111,6 +111,15 @@ bool photo_camera::photo_camera_open( photo_camera_list* list, const std::string
   // Associate camera with port
   if( list->lookupPortInfo( port_name, &port_info_ ) == true )
   {
+    char *name=NULL, *path=NULL;
+    GPPortType type;
+    std::cout << "1" <<std::endl;
+    gp_port_info_get_name(port_info_, &name);
+    std::cout << "2 : " << name << std::endl;
+    gp_port_info_get_path(port_info_, &path);
+    std::cout << "3 : " << path << std::endl;
+    gp_port_info_get_type(port_info_, &type);
+    std::cout << "4 : " << type << std::endl;
     if( gp_camera_set_port_info( camera_, port_info_ ) != GP_OK )
     {
       photo_reporter::error( "gp_camera_set_port_info()" );
@@ -649,6 +658,12 @@ std::string photo_camera::get_picture_path(boost::mutex *photo_mutex_) {
         return "";
     }
 
+}
+
+std::string photo_camera::get_port_info() {
+    char *path;
+    gp_port_info_get_path(port_info_, &path);
+    return path;
 }
 
 
