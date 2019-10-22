@@ -179,12 +179,10 @@ void PhotoNode::execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal)
   std::cout << "Triggering capture action" << std::endl;
   photo_mutex_.lock();
   std::string port_info = camera_.get_port_info();
-  std::cout << "Port info before pictures : " << port_info << std::endl;
 
   bool error_code_trigger = camera_.photo_camera_set_config("eosremoterelease", "5");
 
   port_info = camera_.get_port_info();
-  std::cout << "Port info after pictures : " << port_info << std::endl;
 
   photo_mutex_.unlock();
   if (error_code_trigger ){

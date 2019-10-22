@@ -113,13 +113,6 @@ bool photo_camera::photo_camera_open( photo_camera_list* list, const std::string
   {
     char *name=NULL, *path=NULL;
     GPPortType type;
-    std::cout << "1" <<std::endl;
-    gp_port_info_get_name(port_info_, &name);
-    std::cout << "2 : " << name << std::endl;
-    gp_port_info_get_path(port_info_, &path);
-    std::cout << "3 : " << path << std::endl;
-    gp_port_info_get_type(port_info_, &type);
-    std::cout << "4 : " << type << std::endl;
     if( gp_camera_set_port_info( camera_, port_info_ ) != GP_OK )
     {
       photo_reporter::error( "gp_camera_set_port_info()" );
