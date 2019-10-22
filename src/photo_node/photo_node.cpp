@@ -54,14 +54,14 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   nh_priv.getParam("aperture_mode", aperture_mode_);
   nh_priv.getParam("iso_mode", iso_mode_);
 
-  ROS_INFO("photo_node: Opening camera with owner field: %s", owner_.c_str());
-  ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
+  ROS_WARN("photo_node %s : Opening camera with owner field: %s", owner_.c_str() , owner_.c_str() );
+  ROS_INFO("photo_node %s : waiting for camera to be plugged or switched on", owner_.c_str());
   while (!camera_initialization(owner_) && ros::ok()){
 
     ros::Duration(2.0).sleep();
   }
-  ROS_INFO("photo_node: Got camera, starting");
-  ROS_INFO("photo_node: configuring");
+  ROS_INFO("photo_node %s : Got camera, starting",owner_.c_str());
+  ROS_INFO("photo_node %s : configuring",owner_.c_str());
   camera_configs(aperture_mode_,shutter_speed_mode_, iso_mode_);
 
 
