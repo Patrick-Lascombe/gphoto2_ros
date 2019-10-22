@@ -35,6 +35,9 @@
 
 #include <experimental/filesystem>
 
+//chrono
+
+
 enum Task {set_focus, trigger_capture, unlock_camera, download_pictures};
 
 class PhotoNode
@@ -61,7 +64,7 @@ public:
   ros::ServiceServer get_picture_path_list_srv_;
   ros::ServiceServer reset_picture_path_list_srv_;
   ros::ServiceServer delete_pictures_srv_;
-  ros::ServiceServer is_camera_ready_;
+  ros::ServiceServer is_camera_ready_srv_;
 
   ros::ServiceClient get_config_client_;
 
@@ -82,7 +85,9 @@ public:
   std::vector<std::string> picture_path_list;
 
   bool exit_loop_;
-  bool is_camera_connected_, is_camera_configured_;
+  bool is_camera_connected_=false, is_camera_configured_=false;
+
+  std::string current_port_info;
 
   GPContext* private_context;
 
@@ -105,7 +110,9 @@ public:
   bool isCameraReady(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp);
   bool deletePictures(gphoto2_ros::DeletePictures::Request& req, gphoto2_ros::DeletePictures::Response& resp);
   void picturePathTimerCallback(const ros::TimerEvent&);
+  void picturePathCheck();
   void reinitCameraCallback(const ros::TimerEvent&);
+  bool isDeviceExist( std::string port_info);
   std::string compareUSB(std::string libusb_detected);
 };
 #endif // PHOTO_NODE_H

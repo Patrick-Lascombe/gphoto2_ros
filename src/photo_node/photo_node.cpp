@@ -59,11 +59,11 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   ROS_INFO("Opening camera with model: %s, bus_number: %s, port number: %s, vendor_id: %s", model_.c_str(), bus_number_.c_str(), port_number_.c_str(), vendor_id_.c_str());
 
   while (!camera_initialization() && ros::ok()){
-      ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
-      ros::Duration(5.0).sleep();
+    ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
+    ros::Duration(5.0).sleep();
   }
   ROS_INFO("photo_node: Got camera, starting");
-  ros::Duration(5.0).sleep();
+  //ros::Duration(5.0).sleep();
   ROS_INFO("photo_node: configuring");
   camera_configs(aperture_mode_,shutter_speed_mode_, iso_mode_);
 
@@ -79,7 +79,7 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   get_picture_path_list_srv_ = nh.advertiseService("get_picture_path_list", &PhotoNode::getPicturePathList, this);
   reset_picture_path_list_srv_ = nh.advertiseService("reset_picture_path_list", &PhotoNode::resetPicturePathList, this);
   delete_pictures_srv_ = nh.advertiseService("delete_pictures", &PhotoNode::deletePictures, this);
-  is_camera_ready_ = nh.advertiseService("is_camera_ready", &PhotoNode::isCameraReady, this);
+  is_camera_ready_srv_ = nh.advertiseService("is_camera_ready", &PhotoNode::isCameraReady, this);
   get_config_client_ = nh.serviceClient<gphoto2_ros::GetConfig>("get_config");
 
   path_pub_ = nh.advertise<std_msgs::String>("canon/eos/picture_path", 10);
@@ -88,8 +88,8 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   as_trigger.start();
 
   // ***** Loop to keep list of taken pictures updated
-  picutre_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
-  reinit_camera_timer_ = nh.createTimer(ros::Duration(10), &PhotoNode::reinitCameraCallback, this);
+  //picutre_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
+  //reinit_camera_timer_ = nh.createTimer(ros::Duration(10), &PhotoNode::reinitCameraCallback, this);
 
 }
 
@@ -101,7 +101,41 @@ PhotoNode::~PhotoNode()
   camera_.photo_camera_close();
 }
 
+//bool PhotoNode::camera_initialization(){
+//  camera_list_=*(new photo_camera_list());
+//  camera_=*(new photo_camera());
+//  // create context
+//  private_context = camera_.photo_camera_create_context();
+
+//  // autodetect all cameras connected
+//  if( camera_list_.autodetect( private_context ) == false )
+//  {
+//    ROS_FATAL( "photo_node: Autodetection of cameras failed." );
+//    gp_context_unref( private_context );
+//  }
+
+//  // open camera from camera list
+//  if(model_ != "" && bus_number_ != "" && port_number_ != "" && vendor_id_ != "") {
+//    std::string usb=usb_from_vendor_bus_and_port_numbers(bus_number_, port_number_, vendor_id_);
+//    std::string value = compareUSB(usb);
+//    if( usb=="" || !camera_.photo_camera_open( &camera_list_, model_,  value) )
+//    {
+//      ROS_WARN( "photo_node: Could not open camera");
+//      gp_context_unref( private_context );
+//    }else {
+//      is_camera_connected_=true;
+//      ROS_INFO("Camera initialized");
+//      return true;
+//    }
+//  } else {
+//    ROS_WARN( "A model, a vendor, a bus and a port number should be provided to open the camera");
+//    exit(0);
+//  }
+//  return false;
+//}
+
 bool PhotoNode::camera_initialization(){
+  //ROS_INFO( "photo_node: cam_init" );
   camera_list_=*(new photo_camera_list());
   camera_=*(new photo_camera());
   // create context
@@ -112,42 +146,35 @@ bool PhotoNode::camera_initialization(){
   {
     ROS_FATAL( "photo_node: Autodetection of cameras failed." );
     gp_context_unref( private_context );
+    return false;
   }
 
-  // open camera from camera list
-  if(model_ != "" && bus_number_ != "" && port_number_ != "" && vendor_id_ != "") {
-    std::string usb=usb_from_vendor_bus_and_port_numbers(bus_number_, port_number_, vendor_id_);
-    std::string value = compareUSB(usb);
-    if( usb=="" || !camera_.photo_camera_open( &camera_list_, model_,  value) )
-    {
-      ROS_WARN( "photo_node: Could not open camera");
-      gp_context_unref( private_context );
-    }else {
-      is_camera_connected_=true;
-      ROS_INFO("Camera initialized");
-      return true;
+  //ROS_INFO_STREAM( "photo_node: before loop  of " << gp_list_count(camera_list_.getCameraList()));
+  for (int i=0;i <gp_list_count(camera_list_.getCameraList()); i++) {
+    //ROS_INFO_STREAM( "photo_node: loop index: " <<i << "out of " << gp_list_count(camera_list_.getCameraList()));
+    if ( !camera_.photo_camera_open(&camera_list_,i)){
+      //ROS_WARN_STREAM("photo_node: Could not open camera n " << i);
     }
-  } else {
-    ROS_WARN( "A model, a vendor, a bus and a port number should be provided to open the camera");
-    exit(0);
+    else{
+      char* value = new char[255];
+      bool error_code = camera_.photo_camera_get_config("ownername", &value );
+      if( error_code )
+      {
+        current_port_info=camera_.get_port_info();
+        ROS_WARN_STREAM("Owner is "<< value << " on port " << current_port_info);
+        is_camera_connected_=true;
+        ROS_INFO("Camera initialized");
+        return true;
+      }
+      delete[] value;
+    }
   }
+  gp_context_unref( private_context );
+  camera_.photo_camera_close();
   return false;
 }
 
-std::string PhotoNode::compareUSB(std::string libusb_detected) {
-    camera_list_.autodetect(private_context);
-    CameraList *cl = camera_list_.getCameraList();
-    std::cout << "Value from libusb : a" << libusb_detected << "a" << std::endl;
-    for(int i = 0; i < gp_list_count(cl); i++) {
-        const char *value;
-        gp_list_get_value(cl, i, &value);
-        std::cout << "Value from camera list : a" << value << "a" << std::endl;
-        if(libusb_detected == value) {
-            std::cout << "Correct usb found returning it" << std::endl;
-           return value;
-        }
-    }
-}
+
 
 void PhotoNode::camera_configs(std::string aperture_mode, std::string shutter_speed_mode, std::string iso_mode){
   photo_mutex_.lock();
@@ -423,6 +450,10 @@ bool PhotoNode::deletePictures(gphoto2_ros::DeletePictures::Request &req, gphoto
 // This service must be running in a different thread all the time to recover the paths of the pictures that are taken
 // it listen to the events coming from the camera on a loop, and save the path of the picture taken when the right events is coming
 void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
+  picturePathCheck();
+}
+
+void PhotoNode::picturePathCheck() {
   std::string path_to_file = camera_.get_picture_path(&photo_mutex_);
   if(path_to_file != "") {
     ROS_DEBUG("Adding picture path to list: %s", path_to_file.c_str());
@@ -434,71 +465,37 @@ void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
 }
 
 void PhotoNode::reinitCameraCallback(const ros::TimerEvent &) {
-    // ls usb
-    if(is_camera_connected_) {
-        libusb_device **devs;
-        int r;
-        ssize_t cnt;
 
-        r = libusb_init(NULL);
-        cnt = libusb_get_device_list(NULL, &devs);
-        if (cnt < 0){
-          libusb_exit(NULL);
-        }
-        bool usb_device_found=false;
-        libusb_device *dev;
-        int i = 0, j = 0;
-        uint8_t path[8];
+}
 
-        while ((dev = devs[i++]) != NULL) {
-          struct libusb_device_descriptor desc;
-          int r = libusb_get_device_descriptor(dev, &desc);
-          if (r < 0) {
-            fprintf(stderr, "failed to get device descriptor");
-          }
+bool PhotoNode::isDeviceExist( std::string port_info){
+  bool is_device_found =false;
 
-          std::string detected_bus=std::to_string(libusb_get_bus_number(dev));
+  int bus_to_find=std::stoi(port_info.substr (4,3));
+  int device_to_find=std::stoi(port_info.substr (8,3));
 
-          r = libusb_get_port_numbers(dev, path, sizeof(path));
-
-          std::string detected_port;
-          if (r > 0) {
-            detected_port=std::to_string(path[0]);
-            for (j = 1; j < r; j++){
-              detected_port=detected_port + "." + std::to_string(path[j]);
-            }
-          }
-
-          std::stringstream stream_id_vendor;
-          stream_id_vendor << std::hex << desc.idVendor;
-          std::string detected_id_vendor= std::string(4 - stream_id_vendor.str().length(), '0') + stream_id_vendor.str();
-
-
-          if ((detected_bus==bus_number_) && (detected_port==port_number_) && (detected_id_vendor==vendor_id_)){
-            usb_device_found=true;
-          }
-        }
-        if(!usb_device_found) {
-            ROS_ERROR("No usb device found, disconnect camera from node");
-//            camera_.photo_camera_close();
-            is_camera_connected_=false;
-            is_camera_configured_=false;
-        }
-
-    }
-
-  if(is_camera_connected_ == false) {
-    if(camera_initialization()) {
-        ROS_INFO("photo_node: Got camera, reconnecting");
-        ROS_INFO_STREAM("is camera connected : " << is_camera_connected_ );
-        ROS_INFO_STREAM("is camera configured : " << is_camera_configured_ );
-        ros::Duration(5.0).sleep();
-        ROS_INFO("photo_node: configuring");
-        camera_configs(shutter_speed_mode_, aperture_mode_, iso_mode_);
-        ROS_INFO("photo_node: configured");
+  libusb_device **list;
+  libusb_device *found = NULL;
+  ssize_t cnt = libusb_get_device_list(NULL, &list);
+  ssize_t i = 0;
+  int err = 0;
+  if (cnt < 0)
+    libusb_exit(NULL);
+  for (i = 0; i < cnt; i++) {
+    libusb_device *device = list[i];
+    int bus_nb=libusb_get_bus_number(device);
+    int device_nb= libusb_get_device_address(device);
+    //ROS_INFO_STREAM("Testing: Bus: " << bus_nb << ", Device: " << device_nb);
+    if ((bus_nb == bus_to_find) && (device_nb == device_to_find)){
+      //ROS_INFO_STREAM("Found: Bus: " << bus_nb << ", Device: " << device_nb);
+      is_device_found=true;
+      break;
     }
   }
+  libusb_free_device_list(list, 1);
+  return is_device_found;
 }
+
 
 int main(int argc, char **argv)
 {
@@ -506,6 +503,34 @@ int main(int argc, char **argv)
   ros::AsyncSpinner spinner(4);
   PhotoNode a("set_focus_action", "trigger_action");
   spinner.start();
+
+
+  ros::Rate r(10);
+  r.sleep();
+  while (ros::ok()) {
+    if (a.is_camera_connected_){
+      //ROS_INFO("Main: Testing cam connection");
+      if (a.isDeviceExist(a.current_port_info)){
+        //ROS_WARN_STREAM("Main: cam ok");
+        a.picturePathCheck();
+      }else {
+        ROS_WARN_STREAM("Main: cam disconnected");
+        a.camera_.photo_camera_close();
+        a.is_camera_connected_=false;
+        a.is_camera_configured_=false;
+        a.current_port_info="";
+      }
+    }else {
+      //ROS_WARN_STREAM("Main :Attempting to reconnect");
+      if (a.camera_initialization()){
+        ROS_WARN_STREAM("Main: camera reconnected, reconfiguring");
+        a.camera_configs(a.aperture_mode_,a.shutter_speed_mode_, a.iso_mode_);
+      }else {
+        ros::Duration(2.0).sleep();
+      }
+    }
+    r.sleep();
+  }
   ros::waitForShutdown();
   a.~PhotoNode();
 
