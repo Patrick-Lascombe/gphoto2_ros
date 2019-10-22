@@ -86,7 +86,8 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   as_trigger.start();
 
   // ***** Loop to keep list of taken pictures updated
-  //picutre_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
+  picture_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
+  picture_path_timer_.stop();
   //reinit_camera_timer_ = nh.createTimer(ros::Duration(10), &PhotoNode::reinitCameraCallback, this);
 
 }
@@ -510,9 +511,10 @@ int main(int argc, char **argv)
       //ROS_INFO("Main: Testing cam connection");
       if (a.isDeviceExist(a.current_port_info)){
         //ROS_WARN_STREAM("Main: cam ok");
-        a.picturePathCheck();
+        //a.picturePathCheck();
       }else {
         ROS_WARN_STREAM("Main: cam disconnected");
+        a.picture_path_timer_.stop();
         a.camera_.photo_camera_close();
         a.is_camera_connected_=false;
         a.is_camera_configured_=false;
@@ -523,6 +525,7 @@ int main(int argc, char **argv)
       if (a.camera_initialization(a.owner_)){
         ROS_WARN_STREAM("Main: camera reconnected, reconfiguring");
         a.camera_configs(a.aperture_mode_,a.shutter_speed_mode_, a.iso_mode_);
+        a.picture_path_timer_.start();
       }else {
         ros::Duration(2.0).sleep();
       }

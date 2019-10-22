@@ -69,7 +69,7 @@ public:
   ros::ServiceClient get_config_client_;
 
   ros::Publisher path_pub_;
-  ros::Timer picutre_path_timer_;
+  ros::Timer picture_path_timer_;
   ros::Timer reinit_camera_timer_;
 
   std::string owner_;
