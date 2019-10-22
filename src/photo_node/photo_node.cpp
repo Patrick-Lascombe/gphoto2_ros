@@ -87,7 +87,7 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
 
   // ***** Loop to keep list of taken pictures updated
   picture_path_timer_ = nh.createTimer(ros::Duration(0.01), &PhotoNode::picturePathTimerCallback, this);
-  picture_path_timer_.stop();
+  //picture_path_timer_.stop();
   //reinit_camera_timer_ = nh.createTimer(ros::Duration(10), &PhotoNode::reinitCameraCallback, this);
 
 }
@@ -455,7 +455,7 @@ void PhotoNode::picturePathTimerCallback(const ros::TimerEvent&) {
 void PhotoNode::picturePathCheck() {
   std::string path_to_file = camera_.get_picture_path(&photo_mutex_);
   if(path_to_file != "") {
-    ROS_DEBUG("Adding picture path to list: %s", path_to_file.c_str());
+    ROS_INFO("Adding picture path to list: %s", path_to_file.c_str());
     picture_path_list.push_back(path_to_file);
     std_msgs::String msg;
     msg.data = path_to_file;
