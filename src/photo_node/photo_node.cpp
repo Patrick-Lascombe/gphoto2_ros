@@ -47,18 +47,16 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   ros::NodeHandle nh_priv("~");
 
   //Camera filters
-  nh_priv.getParam("vendor_id", vendor_id_);
-  nh_priv.getParam("model", model_);
-  nh_priv.getParam("bus_number", bus_number_);
-  nh_priv.getParam("port_number", port_number_);
+  nh_priv.getParam("owner", owner_);
+
   //Camera configs
   nh_priv.getParam("shutter_speed_mode", shutter_speed_mode_);
   nh_priv.getParam("aperture_mode", aperture_mode_);
   nh_priv.getParam("iso_mode", iso_mode_);
 
-  ROS_INFO("Opening camera with model: %s, bus_number: %s, port number: %s, vendor_id: %s", model_.c_str(), bus_number_.c_str(), port_number_.c_str(), vendor_id_.c_str());
+  ROS_INFO("Opening camera with owner field: %s", owner_.c_str());
 
-  while (!camera_initialization() && ros::ok()){
+  while (!camera_initialization(owner_) && ros::ok()){
     ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
     ros::Duration(5.0).sleep();
   }
@@ -134,7 +132,7 @@ PhotoNode::~PhotoNode()
 //  return false;
 //}
 
-bool PhotoNode::camera_initialization(){
+bool PhotoNode::camera_initialization(std::string desired_owner){
   //ROS_INFO( "photo_node: cam_init" );
   camera_list_=*(new photo_camera_list());
   camera_=*(new photo_camera());
@@ -158,7 +156,7 @@ bool PhotoNode::camera_initialization(){
     else{
       char* value = new char[255];
       bool error_code = camera_.photo_camera_get_config("ownername", &value );
-      if( error_code )
+      if( error_code && desired_owner==value)
       {
         current_port_info=camera_.get_port_info();
         ROS_WARN_STREAM("Owner is "<< value << " on port " << current_port_info);
@@ -522,7 +520,7 @@ int main(int argc, char **argv)
       }
     }else {
       //ROS_WARN_STREAM("Main :Attempting to reconnect");
-      if (a.camera_initialization()){
+      if (a.camera_initialization(a.owner_)){
         ROS_WARN_STREAM("Main: camera reconnected, reconfiguring");
         a.camera_configs(a.aperture_mode_,a.shutter_speed_mode_, a.iso_mode_);
       }else {
