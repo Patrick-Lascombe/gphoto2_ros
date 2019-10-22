@@ -119,11 +119,14 @@ bool PhotoNode::camera_initialization(std::string desired_owner){
   for (int i=0;i <gp_list_count(camera_list_.getCameraList()); i++) {
     //ROS_INFO_STREAM( "photo_node: loop index: " <<i << "out of " << gp_list_count(camera_list_.getCameraList()));
     if ( !camera_.photo_camera_open(&camera_list_,i)){
-      //ROS_WARN_STREAM("photo_node: Could not open camera n " << i);
+      ROS_WARN_STREAM("photo_node: Could not open camera n " << i);
     }
     else{
+      ROS_WARN_STREAM("Trying to get owner name");
+
       char* value = new char[255];
       bool error_code = camera_.photo_camera_get_config("ownername", &value );
+      ROS_WARN_STREAM("Owner is "<< value << " desired owner is : " << desired_owner);
       if( error_code && desired_owner==value)
       {
         current_port_info=camera_.get_port_info();
@@ -132,7 +135,9 @@ bool PhotoNode::camera_initialization(std::string desired_owner){
         camera_list_.~photo_camera_list();
         ROS_INFO("Camera initialized");
         return true;
-      }
+      }else {
+        camera_.photo_camera_close();
+       }
       delete[] value;
     }
   }
