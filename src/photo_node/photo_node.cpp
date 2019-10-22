@@ -54,14 +54,13 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   nh_priv.getParam("aperture_mode", aperture_mode_);
   nh_priv.getParam("iso_mode", iso_mode_);
 
-  ROS_INFO("Opening camera with owner field: %s", owner_.c_str());
-
+  ROS_INFO("photo_node: Opening camera with owner field: %s", owner_.c_str());
+  ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
   while (!camera_initialization(owner_) && ros::ok()){
-    ROS_INFO("photo_node: waiting for camera to be plugged or switched on");
-    ros::Duration(5.0).sleep();
+
+    ros::Duration(2.0).sleep();
   }
   ROS_INFO("photo_node: Got camera, starting");
-  //ros::Duration(5.0).sleep();
   ROS_INFO("photo_node: configuring");
   camera_configs(aperture_mode_,shutter_speed_mode_, iso_mode_);
 
@@ -100,38 +99,6 @@ PhotoNode::~PhotoNode()
   camera_.photo_camera_close();
 }
 
-//bool PhotoNode::camera_initialization(){
-//  camera_list_=*(new photo_camera_list());
-//  camera_=*(new photo_camera());
-//  // create context
-//  private_context = camera_.photo_camera_create_context();
-
-//  // autodetect all cameras connected
-//  if( camera_list_.autodetect( private_context ) == false )
-//  {
-//    ROS_FATAL( "photo_node: Autodetection of cameras failed." );
-//    gp_context_unref( private_context );
-//  }
-
-//  // open camera from camera list
-//  if(model_ != "" && bus_number_ != "" && port_number_ != "" && vendor_id_ != "") {
-//    std::string usb=usb_from_vendor_bus_and_port_numbers(bus_number_, port_number_, vendor_id_);
-//    std::string value = compareUSB(usb);
-//    if( usb=="" || !camera_.photo_camera_open( &camera_list_, model_,  value) )
-//    {
-//      ROS_WARN( "photo_node: Could not open camera");
-//      gp_context_unref( private_context );
-//    }else {
-//      is_camera_connected_=true;
-//      ROS_INFO("Camera initialized");
-//      return true;
-//    }
-//  } else {
-//    ROS_WARN( "A model, a vendor, a bus and a port number should be provided to open the camera");
-//    exit(0);
-//  }
-//  return false;
-//}
 
 bool PhotoNode::camera_initialization(std::string desired_owner){
   //ROS_INFO( "photo_node: cam_init" );
@@ -162,14 +129,17 @@ bool PhotoNode::camera_initialization(std::string desired_owner){
         current_port_info=camera_.get_port_info();
         ROS_WARN_STREAM("Owner is "<< value << " on port " << current_port_info);
         is_camera_connected_=true;
+        camera_list_.~photo_camera_list();
         ROS_INFO("Camera initialized");
         return true;
       }
       delete[] value;
     }
   }
+
   gp_context_unref( private_context );
   camera_.photo_camera_close();
+  camera_list_.~photo_camera_list();
   return false;
 }
 
