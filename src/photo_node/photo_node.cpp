@@ -69,8 +69,8 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   set_config_srv_ = nh.advertiseService("set_config", &PhotoNode::setConfig, this);
   get_config_srv_ = nh.advertiseService("get_config", &PhotoNode::getConfig, this);
   capture_srv_ = nh.advertiseService("capture", &PhotoNode::capture, this);
-  set_focus_srv_ = nh.advertiseService("set_focus", &PhotoNode::setFocus, this);
-  trigger_capture_srv_ = nh.advertiseService("trigger_capture", &PhotoNode::triggerCapture, this);
+  //set_focus_srv_ = nh.advertiseService("set_focus", &PhotoNode::setFocus, this);
+  //trigger_capture_srv_ = nh.advertiseService("trigger_capture", &PhotoNode::triggerCapture, this);
   unlock_camera_srv_ = nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
   download_pictures_srv_ = nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
   get_picture_path_list_srv_ = nh.advertiseService("get_picture_path_list", &PhotoNode::getPicturePathList, this);
@@ -129,6 +129,7 @@ bool PhotoNode::camera_initialization(std::string desired_owner){
       ROS_WARN_STREAM("Owner is "<< value << " desired owner is : " << desired_owner);
       if( error_code && desired_owner==value)
       {
+
         current_port_info=camera_.get_port_info();
         ROS_WARN_STREAM("Owner is "<< value << " on port " << current_port_info);
         is_camera_connected_=true;
@@ -137,6 +138,7 @@ bool PhotoNode::camera_initialization(std::string desired_owner){
         return true;
       }else {
         camera_.photo_camera_close();
+        ros::Duration(1.0).sleep();
        }
       delete[] value;
     }
@@ -181,77 +183,16 @@ void PhotoNode::execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &go
 
 void PhotoNode::execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal)
 {
-  std::cout << "Triggering capture action" << std::endl;
+  ROS_INFO( "Triggering capture action" );
   photo_mutex_.lock();
-  std::string port_info = camera_.get_port_info();
-
+  trigger_count++;
   bool error_code_trigger = camera_.photo_camera_set_config("eosremoterelease", "5");
-
-  port_info = camera_.get_port_info();
-
   photo_mutex_.unlock();
   if (error_code_trigger ){
     as_trigger.setSucceeded();
   }else {
     as_trigger.setAborted();
   }
-}
-
-std::string PhotoNode::usb_from_vendor_bus_and_port_numbers(std::string bus_number, std::string port_number, std::string id_vendor){
-  std::string usb_to_load="";
-
-  // ls usb
-  libusb_device **devs;
-  int r;
-  ssize_t cnt;
-
-  r = libusb_init(NULL);
-
-
-  cnt = libusb_get_device_list(NULL, &devs);
-  if (cnt < 0){
-    libusb_exit(NULL);
-  }
-
-  //print dev
-  libusb_device *dev;
-  int i = 0, j = 0;
-  uint8_t path[8];
-
-  while ((dev = devs[i++]) != NULL) {
-    struct libusb_device_descriptor desc;
-    int r = libusb_get_device_descriptor(dev, &desc);
-    if (r < 0) {
-      fprintf(stderr, "failed to get device descriptor");
-      return "";
-    }
-
-    std::string detected_bus=std::to_string(libusb_get_bus_number(dev));
-
-    r = libusb_get_port_numbers(dev, path, sizeof(path));
-
-    std::string detected_port;
-    if (r > 0) {
-      detected_port=std::to_string(path[0]);
-      for (j = 1; j < r; j++){
-        detected_port=detected_port + "." + std::to_string(path[j]);
-      }
-    }
-
-    std::stringstream stream_id_vendor;
-    stream_id_vendor << std::hex << desc.idVendor;
-    std::string detected_id_vendor= std::string(4 - stream_id_vendor.str().length(), '0') + stream_id_vendor.str();
-
-
-    if (detected_bus==bus_number && detected_port==port_number && detected_id_vendor==id_vendor){
-      std::string bus_string = std::string(3 - detected_bus.length(), '0') + detected_bus;
-      std::string device_string = std::string(3 - std::to_string(libusb_get_device_address(dev)).length(), '0') + std::to_string(libusb_get_device_address(dev));
-      usb_to_load=usb_to_load + "usb:" + bus_string + "," + device_string;
-
-      ROS_INFO("usb_to_load: %s, corresponding to bus: %s, port: %s and vendor: %s and device number : %s", usb_to_load.c_str(), detected_bus.c_str(),  detected_port.c_str(), detected_id_vendor.c_str(), device_string.c_str());
-    }
-  }
-  return  usb_to_load;
 }
 
 bool PhotoNode::setConfig( gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp )
@@ -307,6 +248,7 @@ bool PhotoNode::setFocus(std_srvs::Trigger::Request& req, std_srvs::Trigger::Res
 bool PhotoNode::triggerCapture(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp) {
   std::cout << "Triggering capture service" << std::endl;
   photo_mutex_.lock();
+  trigger_count++;
   bool error_code_focus_drive = camera_.photo_camera_set_config("eosremoterelease", "5");
   photo_mutex_.unlock();
   resp.success = true;
@@ -325,6 +267,12 @@ bool PhotoNode::unlockCamera(std_srvs::Trigger::Request& req, std_srvs::Trigger:
 //Downaload all the pictures in the contained in the req.camera_paths field (complete paths are necessary)
 // into a folder precised in req.computer_path
 bool PhotoNode::downloadPictures(gphoto2_ros::DownloadPictures::Request& req, gphoto2_ros::DownloadPictures::Response& resp) {
+
+  while( trigger_count != picture_path_list.size()){
+    ROS_WARN("Waiting to receive remaning picture path from camera");
+    ROS_WARN_STREAM("Trigger count: " << trigger_count << " picture_path_list.size: " << picture_path_list.size());
+    ros::Duration(0.5).sleep();
+  }
 
   if (picture_path_list.size() != req.computer_paths.size()){
     ROS_WARN("requested paths list do not match camera path list: picture_path_list size: %d : computer_paths_size: %d", picture_path_list.size(), req.computer_paths.size());
@@ -383,6 +331,7 @@ bool PhotoNode::getPicturePathList(gphoto2_ros::GetPicturePathList::Request& req
 bool PhotoNode::resetPicturePathList(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
 {
   picture_path_list.clear();
+  trigger_count=0;
   resp.success = true;
   return true;
 }

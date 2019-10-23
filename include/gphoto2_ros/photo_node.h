@@ -83,6 +83,8 @@ public:
 
   bool exit_loop_;
   bool is_camera_connected_=false, is_camera_configured_=false;
+  int trigger_count=0;
+
 
   std::string current_port_info;
 
@@ -94,7 +96,6 @@ public:
   void execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &goal);
   void execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal);
   bool camera_initialization(std::string desired_owner);
-  std::string usb_from_vendor_bus_and_port_numbers(std::string bus_number, std::string port_number, std::string id_vendor);
   bool setConfig(gphoto2_ros::SetConfig::Request& req, gphoto2_ros::SetConfig::Response& resp);
   bool getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::GetConfig::Response& resp);
   bool capture( gphoto2_ros::Capture::Request& req, gphoto2_ros::Capture::Response& resp );
