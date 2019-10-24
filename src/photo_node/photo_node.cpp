@@ -68,9 +68,6 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   // ***** Start Services *****
   set_config_srv_ = nh.advertiseService("set_config", &PhotoNode::setConfig, this);
   get_config_srv_ = nh.advertiseService("get_config", &PhotoNode::getConfig, this);
-  capture_srv_ = nh.advertiseService("capture", &PhotoNode::capture, this);
-  //set_focus_srv_ = nh.advertiseService("set_focus", &PhotoNode::setFocus, this);
-  //trigger_capture_srv_ = nh.advertiseService("trigger_capture", &PhotoNode::triggerCapture, this);
   unlock_camera_srv_ = nh.advertiseService("unlock_camera", &PhotoNode::unlockCamera, this);
   download_pictures_srv_ = nh.advertiseService("download_pictures", &PhotoNode::downloadPictures, this);
   get_picture_path_list_srv_ = nh.advertiseService("get_picture_path_list", &PhotoNode::getPicturePathList, this);
@@ -139,7 +136,7 @@ bool PhotoNode::camera_initialization(std::string desired_owner){
       }else {
         camera_.photo_camera_close();
         ros::Duration(1.0).sleep();
-       }
+      }
       delete[] value;
     }
   }
@@ -169,14 +166,19 @@ void PhotoNode::camera_configs(std::string aperture_mode, std::string shutter_sp
 
 void PhotoNode::execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &goal)
 {
-  photo_mutex_.lock();
-  bool error_code_focus_drive = camera_.photo_camera_set_config("autofocusdrive", "true");
-  ros::Duration(1.5).sleep();
-  bool error_code_cancel_focus = camera_.photo_camera_set_config("cancelautofocus", "true");
-  photo_mutex_.unlock();
-  if (error_code_focus_drive && error_code_cancel_focus){
-    as_set_focus.setSucceeded();
-  }else {
+  if (is_camera_connected_ && is_camera_configured_){
+    photo_mutex_.lock();
+    bool error_code_focus_drive = camera_.photo_camera_set_config("autofocusdrive", "true");
+    ros::Duration(1.5).sleep();
+    bool error_code_cancel_focus = camera_.photo_camera_set_config("cancelautofocus", "true");
+    photo_mutex_.unlock();
+    if (error_code_focus_drive && error_code_cancel_focus){
+      as_set_focus.setSucceeded();
+    }else {
+      as_set_focus.setAborted();
+    }}
+  else{
+    ROS_WARN("Cameras are not ready, cannot set focus");
     as_set_focus.setAborted();
   }
 }
@@ -184,14 +186,20 @@ void PhotoNode::execute_set_focus_CB(const gphoto2_ros::SetFocusGoalConstPtr &go
 void PhotoNode::execute_trigger_CB(const gphoto2_ros::TriggerGoalConstPtr &goal)
 {
   ROS_INFO( "Triggering capture action" );
-  photo_mutex_.lock();
-  trigger_count++;
-  bool error_code_trigger = camera_.photo_camera_set_config("eosremoterelease", "5");
-  photo_mutex_.unlock();
-  if (error_code_trigger ){
-    as_trigger.setSucceeded();
-  }else {
-    as_trigger.setAborted();
+  if (is_camera_connected_ && is_camera_configured_){
+    photo_mutex_.lock();
+    trigger_count++;
+    bool error_code_trigger = camera_.photo_camera_set_config("eosremoterelease", "5");
+    photo_mutex_.unlock();
+    if (error_code_trigger ){
+      as_trigger.setSucceeded();
+    }else {
+      as_trigger.setAborted();
+    }
+  }
+  else{
+    ROS_WARN("Cameras are not ready, cannot trigger");
+    as_set_focus.setAborted();
   }
 }
 
@@ -217,20 +225,6 @@ bool PhotoNode::getConfig( gphoto2_ros::GetConfig::Request& req, gphoto2_ros::Ge
   return error_code;
 }
 
-//Old capture from the original wrapper : Is doing a full press and release, and then download the picture using a non optimal method (Maybe delete this part)
-bool PhotoNode::capture( gphoto2_ros::Capture::Request& req, gphoto2_ros::Capture::Response& resp )
-{
-  // capture a camera image
-  photo_mutex_.lock();
-  bool error_code = camera_.photo_camera_capture( &image_ );
-  if( error_code )
-  {
-    // fill image message
-    fillImage( resp.image, "rgb8", image_.getHeight(), image_.getWidth(), image_.getBytesPerPixel() * image_.getWidth(), image_.getDataAddress() );
-  }
-  photo_mutex_.unlock();
-  return error_code;
-}
 
 //Set the focus of the camera, the sleep in the middle of the function is necessary to give the camera time to focus properly
 bool PhotoNode::setFocus(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
