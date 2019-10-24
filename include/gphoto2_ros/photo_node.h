@@ -111,6 +111,7 @@ public:
   void picturePathCheck();
   void reinitCameraCallback(const ros::TimerEvent&);
   bool isDeviceExist( std::string port_info);
+  bool isDeviceClaimed( std::string port_info);
   std::string compareUSB(std::string libusb_detected);
 };
 #endif // PHOTO_NODE_H

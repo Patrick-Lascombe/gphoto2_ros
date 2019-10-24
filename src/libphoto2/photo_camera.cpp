@@ -149,7 +149,7 @@ bool photo_camera::photo_camera_open( photo_camera_list* list, int n )
     return false;
   }
 
-  std::cout << "Opening camera " << n << " by name (" << name << ") and value (" << value << ")" << std::endl;
+  //std::cout << "Opening camera " << n << " by name (" << name << ") and value (" << value << ")" << std::endl;
 
   if( photo_camera_open( list, name, value ) == false )
   {

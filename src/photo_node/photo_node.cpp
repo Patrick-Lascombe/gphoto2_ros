@@ -57,7 +57,7 @@ PhotoNode::PhotoNode(std::string name_action_set_focus, std::string name_action_
   ROS_WARN("photo_node %s : Opening camera with owner field: %s", owner_.c_str() , owner_.c_str() );
   ROS_INFO("photo_node %s : waiting for camera to be plugged or switched on", owner_.c_str());
   while (!camera_initialization(owner_) && ros::ok()){
-
+    //int int_owner=std::stoi(owner_);
     ros::Duration(2.0).sleep();
   }
   ROS_INFO("photo_node %s : Got camera, starting",owner_.c_str());
@@ -112,32 +112,39 @@ bool PhotoNode::camera_initialization(std::string desired_owner){
     return false;
   }
 
-  //ROS_INFO_STREAM( "photo_node: before loop  of " << gp_list_count(camera_list_.getCameraList()));
+
   for (int i=0;i <gp_list_count(camera_list_.getCameraList()); i++) {
-    //ROS_INFO_STREAM( "photo_node: loop index: " <<i << "out of " << gp_list_count(camera_list_.getCameraList()));
+
     if ( !camera_.photo_camera_open(&camera_list_,i)){
       ROS_WARN_STREAM("photo_node: Could not open camera n " << i);
-    }
-    else{
-      ROS_WARN_STREAM("Trying to get owner name");
-
-      char* value = new char[255];
-      bool error_code = camera_.photo_camera_get_config("ownername", &value );
-      ROS_WARN_STREAM("Owner is "<< value << " desired owner is : " << desired_owner);
-      if( error_code && desired_owner==value)
-      {
-
-        current_port_info=camera_.get_port_info();
-        ROS_WARN_STREAM("Owner is "<< value << " on port " << current_port_info);
-        is_camera_connected_=true;
-        camera_list_.~photo_camera_list();
-        ROS_INFO("Camera initialized");
-        return true;
-      }else {
+      camera_.photo_camera_close();
+      return false;
+    }else {
+      std::string port_info = camera_.get_port_info();
+      if (isDeviceClaimed(port_info)){
+       // ROS_WARN_STREAM("Device on " << port_info << " is already claimed");
         camera_.photo_camera_close();
-        ros::Duration(1.0).sleep();
+      }else {
+
+        char* value = new char[255];
+        bool error_code = camera_.photo_camera_get_config("ownername", &value );
+        ROS_WARN_STREAM("Owner : "<< value << " on port " << port_info << " / desired owner  : " << desired_owner);
+        if( error_code && desired_owner==value)
+        {
+
+          current_port_info=camera_.get_port_info();
+          ROS_WARN_STREAM("Initializing owner: "<< value << " on port " << current_port_info);
+          is_camera_connected_=true;
+          camera_list_.~photo_camera_list();
+          ROS_INFO("Camera initialized");
+          return true;
+        }else {
+          camera_.photo_camera_close();
+          ros::Duration(1.0).sleep();
+        }
+        delete[] value;
       }
-      delete[] value;
+
     }
   }
 
@@ -411,6 +418,38 @@ bool PhotoNode::isDeviceExist( std::string port_info){
   return is_device_found;
 }
 
+//static struct libusb_device_handle *devh = NULL;
+bool PhotoNode::isDeviceClaimed( std::string port_info){
+  bool is_device_claimed =false;
+
+  int bus_to_find=std::stoi(port_info.substr (4,3));
+  int device_to_find=std::stoi(port_info.substr (8,3));
+
+  libusb_device **list;
+  libusb_device *found = NULL;
+  libusb_device_handle *dhand = NULL;
+  ssize_t cnt = libusb_get_device_list(NULL, &list);
+  ssize_t i = 0;
+  int err = 0;
+  if (cnt < 0)
+    libusb_exit(NULL);
+  for (i = 0; i < cnt; i++) {
+    libusb_device *device = list[i];
+    int bus_nb=libusb_get_bus_number(device);
+    int device_nb= libusb_get_device_address(device);
+    //ROS_INFO_STREAM("Testing: Bus: " << bus_nb << ", Device: " << device_nb);
+    if ((bus_nb == bus_to_find) && (device_nb == device_to_find)){
+      libusb_open(device,&dhand);
+      libusb_claim_interface(dhand,0);
+      libusb_close(dhand);
+      is_device_claimed=libusb_claim_interface(dhand,0)!=0;
+      break;
+    }
+  }
+  libusb_free_device_list(list, 1);
+  return is_device_claimed;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -429,7 +468,7 @@ int main(int argc, char **argv)
         //ROS_WARN_STREAM("Main: cam ok");
         //a.picturePathCheck();
       }else {
-        ROS_WARN_STREAM("Main: cam disconnected");
+        ROS_WARN_STREAM("Camera [" << a.owner_ << "] DISCONNECTED on port ["<<  a.current_port_info <<"]");
         a.picture_path_timer_.stop();
         a.camera_.photo_camera_close();
         a.is_camera_connected_=false;
@@ -439,7 +478,7 @@ int main(int argc, char **argv)
     }else {
       //ROS_WARN_STREAM("Main :Attempting to reconnect");
       if (a.camera_initialization(a.owner_)){
-        ROS_WARN_STREAM("Main: camera reconnected, reconfiguring");
+        ROS_WARN_STREAM("Camera [" << a.owner_ << "] reconnected on port ["<<  a.current_port_info <<"], reconfiguring");
         a.camera_configs(a.aperture_mode_,a.shutter_speed_mode_, a.iso_mode_);
         a.picture_path_timer_.start();
       }else {
