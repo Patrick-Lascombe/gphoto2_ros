@@ -55,6 +55,7 @@ public:
   ros::ServiceServer get_picture_path_list_srv_;
   ros::ServiceServer reset_picture_path_list_srv_;
   ros::ServiceServer delete_pictures_srv_;
+  ros::ServiceServer is_camera_ready_srv_;
 
   boost::mutex photo_mutex_ ;
   ros::Publisher path_pub_;
@@ -100,6 +101,7 @@ public:
       get_picture_path_list_srv_ = nh.advertiseService("get_picture_path_list", &PhotoNodeSim::getPicturePathList, this);
       reset_picture_path_list_srv_ = nh.advertiseService("reset_picture_path_list", &PhotoNodeSim::resetPicturePathList, this);
       delete_pictures_srv_ = nh.advertiseService("delete_pictures", &PhotoNodeSim::deletePictures, this);
+      is_camera_ready_srv_ = nh.advertiseService("is_camera_ready", &PhotoNodeSim::isCameraReady, this);
 
       path_pub_ = nh.advertise<std_msgs::String>("canon/eos/picture_path", 10);
 
@@ -277,6 +279,12 @@ public:
 
   void picturePathTimerCallback(const ros::TimerEvent&) {
 
+  }
+
+  bool isCameraReady(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& resp )
+  {
+    resp.success = true;
+    return true;
   }
 };
 
