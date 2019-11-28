@@ -93,7 +93,7 @@ target_link_libraries(test_photo
   ${OpenCV_LIBRARIES}
 )
 
-install(TARGETS gphoto2_ros  test_photo photo_node
+install(TARGETS gphoto2_ros  test_photo photo_node photo_node_sim
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
